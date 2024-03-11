@@ -163,16 +163,28 @@
                 // Extract the placeId from the URL
                 const placeId = url.split('/').pop();
 
-                // Construct the API URL
-                const apiUrl = `https://api.bannergress.com/bnrs?orderBy=created&orderDirection=DESC&online=true&placeId=${placeId}&limit=100&offset=0`;
+                // Fetch all banners iteratively using offset
+                const fetchAllBanners = async (placeId, offset = 0, banners = []) => {
+                    const apiUrl = `https://api.bannergress.com/bnrs?orderBy=created&orderDirection=DESC&online=true&placeId=${placeId}&limit=100&offset=${offset}`;
+
+                    try {
+                        const response = await fetch(apiUrl);
+                        const data = await response.json();
+                        const newBanners = data.map(banner => `https://bannergress.com/banner/${banner.id}`);
+                        banners.push(...newBanners);
+
+                        if (data.length === 100) {
+                            return fetchAllBanners(placeId, offset + 100, banners);
+                        } else {
+                            return banners;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching JSON:', error);
+                    }
+                };
 
                 // Fetch the data
-                return fetch(apiUrl)
-                    .then(response => response.json())
-                    .then(data =>
-                        data.map(banner => `https://bannergress.com/banner/${banner.id}`)
-                    )
-                    .catch(error => console.error('Error fetching JSON:', error));
+                return fetchAllBanners(placeId);
             }
 
             // Colours for the banner routes
@@ -209,7 +221,7 @@
                 try {
                     Object.values(bannerData.missions).forEach(mission => {
                         mission.steps.forEach(step => {
-                            if (step.poi.type !== "unavailable") {
+                            if (step.poi && step.poi.type !== "unavailable") {
                                 const { latitude, longitude } = step.poi;
                                 latLongPairs.push([latitude, longitude]);
                             }
@@ -217,7 +229,7 @@
                     });
                 } catch (e) {
                     console.log(bannerData);
-
+                    console.error(e);
                 };
                 const polyline = L.polyline(latLongPairs, { color: colour, opacity: regularOpacity }).addTo(allBanners);
                 const arrowSymbol = L.polylineDecorator(polyline, {
