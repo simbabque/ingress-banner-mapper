@@ -82,9 +82,17 @@
             <p>This page can display lots of banners from <a href="https://bannergress.com"
                     target="_blank">Bannergress</a> on a single
                 map at the same time.</p>
+            <p>It can also display all the banners from a place, such as a city or a country, by pasting the place's
+                "browse" URL below.</p>
+            <p>Here are some suggestion: 
+                <a href="#" class="example-place" data-id="london-6549">London</a>,
+                <a href="#" class="example-place" data-id="lisbon-1eae">Lisbon</a>,
+                <a href="#" class="example-place" data-id="porto-9b95">Porto</a>,
+                <a href="#" class="example-place" data-id="hanover-6716">Hannover</a>.</p>
+
             <label for="banner-links">Paste your bannergress links here:</label>
             <textarea id="banner-links"
-                style="width: 100%; height: 200px;">https://bannergress.com/browse/aberdeen-city-54c6</textarea>
+                style="width: 100%; height: 200px;"></textarea>
             <div>
                 <button id="show-banners">
                     Show banners
@@ -114,6 +122,12 @@
 
                 const urlsToFetch = [];
                 for (const url of document.getElementById("banner-links").value.split('\n')) {
+                    // ignore if it doesn't look like a bannergress.com url
+                    if (!url.includes('bannergress.com')) {
+                        continue;
+                    }
+
+                    // if it's a browse url, resolve it to the list of banners
                     if (url.includes('/browse/')) {
                         const banners = await resolvePlaceURL(url);
                         urlsToFetch.push(...banners);
@@ -145,6 +159,12 @@
                 allBanners.remove();
                 invocationCount = 0;
             });
+
+            // Event listener for the example places to append their data-id as browse URLs into the textarea in a new line
+            document.querySelectorAll('.example-place').forEach(place => place.addEventListener('click', (event) => {
+                const textarea = document.getElementById('banner-links');
+                textarea.value += `https://bannergress.com/browse/${event.target.dataset.id}\n`;
+            }));
 
             // Turn banner URL into API URL
             function apiURL(url) {
