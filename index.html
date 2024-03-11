@@ -59,7 +59,8 @@
                     target="_blank">Bannergress</a> on a single
                 map at the same time.</p>
             <label for="banner-links">Paste your bannergress links here:</label>
-            <textarea id="banner-links" style="width: 100%; height: 200px;"></textarea>
+            <textarea id="banner-links"
+                style="width: 100%; height: 200px;">https://bannergress.com/browse/aberdeen-city-54c6</textarea>
             <div>
                 <button id="show-banners">Show banners</button>
                 <button id="clear-banners">Clear banners</button>
@@ -79,7 +80,12 @@
             // FeatureGroup to keep all banners visible
             const allBanners = L.featureGroup();
 
-            // Function to retrieve a JSON file from a URL
+            // Turn banner URL into API URL
+            function apiURL(url) {
+                return 'https://api.bannergress.com/bnrs/' + url.split('/').pop();
+            }
+
+            // Function to retrieve a single banner JSON and draw it on the map
             let invocationCount = 0;
             function fetchJsonData(url) {
                 return fetch(url)
@@ -88,49 +94,54 @@
                     .catch(error => console.error('Error fetching JSON:', error));
             }
 
-            // Turn banner URL into API URL
-            function apiURL(url) {
-                return 'https://api.bannergress.com/bnrs/' + url.split('/').pop();
-            }
-
             // Call fetchJsonData when the map is ready
-            map.whenReady(() => {
-                // Array of URLs to fetch
-                const urls = [
-                    'https://bannergress.com/banner/recurse-aberdeen-595b',
-                    'https://bannergress.com/banner/aberdeen-pride-37eb',
-                    'https://bannergress.com/banner/fierce-aberdeen-bee7',
-                    'https://bannergress.com/banner/artistic-aberdeen-ca16',
-                    'https://bannergress.com/banner/aberdeen-be4e',
-                    'https://bannergress.com/banner/hack-the-park-duthie-park-54a5',
-                    'https://bannergress.com/banner/pridegress-aberdeen-5da5',
-                    'https://bannergress.com/banner/hrh-queen-elizabeth-0e13',
-                    'https://bannergress.com/banner/resistance-aberdeen-874e',
-                    'https://bannergress.com/banner/duthie-park-second-sunday-ecfc',
-                    'https://bannergress.com/banner/allenvale-second-sunday-c082',
-                    'https://bannergress.com/banner/merry-christmas-aberdeen-fe60',
-                    'https://bannergress.com/banner/machina-second-sunday-aberdeen-d540',
-                    'https://bannergress.com/banner/tartan-time-838a',
-                    'https://bannergress.com/banner/x-fac-leopards-of-aberdeen-46fa',
-                    'https://bannergress.com/banner/the-dons-aberdeen-8f91',
-                ];
+            // map.whenReady(() => {
+            //     // Array of URLs to fetch
+            //     const urls = [
+            //         'https://bannergress.com/banner/recurse-aberdeen-595b',
+            //         'https://bannergress.com/banner/aberdeen-pride-37eb',
+            //         'https://bannergress.com/banner/fierce-aberdeen-bee7',
+            //         'https://bannergress.com/banner/artistic-aberdeen-ca16',
+            //         'https://bannergress.com/banner/aberdeen-be4e',
+            //         'https://bannergress.com/banner/hack-the-park-duthie-park-54a5',
+            //         'https://bannergress.com/banner/pridegress-aberdeen-5da5',
+            //         'https://bannergress.com/banner/hrh-queen-elizabeth-0e13',
+            //         'https://bannergress.com/banner/resistance-aberdeen-874e',
+            //         'https://bannergress.com/banner/duthie-park-second-sunday-ecfc',
+            //         'https://bannergress.com/banner/allenvale-second-sunday-c082',
+            //         'https://bannergress.com/banner/merry-christmas-aberdeen-fe60',
+            //         'https://bannergress.com/banner/machina-second-sunday-aberdeen-d540',
+            //         'https://bannergress.com/banner/tartan-time-838a',
+            //         'https://bannergress.com/banner/x-fac-leopards-of-aberdeen-46fa',
+            //         'https://bannergress.com/banner/the-dons-aberdeen-8f91',
+            //     ];
 
-                // Fetch all URLs concurrently
-                Promise.all(urls.map(url => fetchJsonData(apiURL(url))))
-                    .then(dataArray => {
-                        allBanners.addTo(map);
-                        map.fitBounds(allBanners.getBounds());
+            //     // Fetch all URLs concurrently
+            //     Promise.all(urls.map(url => fetchJsonData(apiURL(url))))
+            //         .then(dataArray => {
+            //             allBanners.addTo(map);
+            //             map.fitBounds(allBanners.getBounds());
 
-                    })
-                    .catch(error => {
-                        console.error('One or more fetch calls failed:', error);
-                    });
-            });
+            //         })
+            //         .catch(error => {
+            //             console.error('One or more fetch calls failed:', error);
+            //         });
+            // });
 
             // Event listener for the "Show banners" button
-            document.getElementById("show-banners").addEventListener("click", () => {
-                const urls = document.getElementById("banner-links").value.split('\n');
-                Promise.all(urls.map(url => fetchJsonData(apiURL(url))))
+            document.getElementById("show-banners").addEventListener("click", async () => {
+                const urlsToFetch = [];
+                for (const url of document.getElementById("banner-links").value.split('\n')) {
+                    if (url.includes('/browse/')) {
+                        const banners = await resolvePlaceURL(url);
+                        urlsToFetch.push(...banners);
+                    } else {
+                        urlsToFetch.push(url);
+                    }
+                }
+                
+                // Fetch all URLs concurrently
+                Promise.all(urlsToFetch.map(url => fetchJsonData(apiURL(url))))
                     .then(dataArray => {
                         allBanners.addTo(map);
                         map.fitBounds(allBanners.getBounds());
@@ -146,6 +157,23 @@
                 allBanners.remove();
                 invocationCount = 0;
             });
+
+            // Function to turn a place into a list of banners
+            function resolvePlaceURL(url) {
+                // Extract the placeId from the URL
+                const placeId = url.split('/').pop();
+
+                // Construct the API URL
+                const apiUrl = `https://api.bannergress.com/bnrs?orderBy=created&orderDirection=DESC&online=true&placeId=${placeId}&limit=100&offset=0`;
+
+                // Fetch the data
+                return fetch(apiUrl)
+                    .then(response => response.json())
+                    .then(data =>
+                        data.map(banner => `https://bannergress.com/banner/${banner.id}`)
+                    )
+                    .catch(error => console.error('Error fetching JSON:', error));
+            }
 
             // Colours for the banner routes
             const colours = [
@@ -177,17 +205,20 @@
                 const lowOpacity = 0.2;
                 const regularOpacity = 0.6;
                 const fullOpacity = 1;
-
                 const latLongPairs = [];
-                Object.values(bannerData.missions).forEach(mission => {
-                    mission.steps.forEach(step => {
-                        if (step.poi.type !== "unavailable") {
-                            const { latitude, longitude } = step.poi;
-                            latLongPairs.push([latitude, longitude]);
-                        }
+                try {
+                    Object.values(bannerData.missions).forEach(mission => {
+                        mission.steps.forEach(step => {
+                            if (step.poi.type !== "unavailable") {
+                                const { latitude, longitude } = step.poi;
+                                latLongPairs.push([latitude, longitude]);
+                            }
+                        });
                     });
-                });
+                } catch (e) {
+                    console.log(bannerData);
 
+                };
                 const polyline = L.polyline(latLongPairs, { color: colour, opacity: regularOpacity }).addTo(allBanners);
                 const arrowSymbol = L.polylineDecorator(polyline, {
                     patterns: [
