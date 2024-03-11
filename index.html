@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Fun with Banners</title>
+    <title>Bannergress Banner Mapper</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -88,7 +88,8 @@
                 <a href="#" class="example-place" data-id="london-6549">London</a>,
                 <a href="#" class="example-place" data-id="lisbon-1eae">Lisbon</a>,
                 <a href="#" class="example-place" data-id="porto-9b95">Porto</a>,
-                <a href="#" class="example-place" data-id="hanover-6716">Hannover</a>.</p>
+                <a href="#" class="example-place" data-id="hanover-6716">Hannover</a>, or
+                <a href="#" class="example-banners" data-id="recurse-aberdeen-595b,artistic-aberdeen-ca16,resistance-aberdeen-874e">some missions in Aberdeen that make a good route</a>.</p>
 
             <label for="banner-links">Paste your bannergress links here:</label>
             <textarea id="banner-links"
@@ -100,6 +101,10 @@
                 </button>
                 <button id="clear-banners">Clear banners</button>
             </div>
+
+            <p>
+                This is not affiliated with Niantic, Inc., Ingress, or Bannergress. Raise issues on <a href="https://github.com/simbabque/ingress-banner-mapper/issues">Github</a>.
+            </p>
         </div>
 
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -166,6 +171,12 @@
                 textarea.value += `https://bannergress.com/browse/${event.target.dataset.id}\n`;
             }));
 
+            // Event listener for the example banners to append their data-id as banner URLs into the textarea in a new line
+            document.querySelectorAll('.example-banners').forEach(place => place.addEventListener('click', (event) => {
+                const textarea = document.getElementById('banner-links');
+                textarea.value += event.target.dataset.id.split(',').map(id => `https://bannergress.com/banner/${id}`).join('\n') + '\n';
+            }));
+
             // Turn banner URL into API URL
             function apiURL(url) {
                 return 'https://api.bannergress.com/bnrs/' + url.split('/').pop();
@@ -213,13 +224,11 @@
             const colours = [
                 "#FF0000", // Red
                 "#FF7F00", // Orange
-                "#FFFF00", // Yellow
-                "#7FFF00", // Chartreuse
-                "#00FF00", // Lime
-                "#00FF7F", // SpringGreen
-                "#00FFFF", // Cyan
-                "#007FFF", // Azure
                 "#0000FF", // Blue
+                "#7FFF00", // Chartreuse
+                "#00FFFF", // Cyan
+                "#00FF7F", // SpringGreen
+                "#007FFF", // Azure
                 "#7F00FF", // Violet
                 "#FF00FF", // Magenta
                 "#FF007F", // Rose
@@ -230,7 +239,9 @@
                 "#32CD32", // LimeGreen
                 "#4682B4", // SteelBlue
                 "#9932CC", // DarkOrchid
-                "#8A2BE2"  // BlueViolet
+                "#8A2BE2",  // BlueViolet
+                "#FFFF00", // Yellow
+                "#00FF00", // Lime
             ];
 
             // Function to draw a banner on the map
