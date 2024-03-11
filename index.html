@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Fun with Banners</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .leaflet-popup-content img {
+            max-width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+    <script>
+
+        // Initialise the map - we start in London
+        var map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // FeatureGroup to keep all banners visible
+        const allBanners = L.featureGroup();
+
+        // Function to retrieve a JSON file from a URL
+        let invocationCount = 0;
+        function fetchJsonData(url) {
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => allBanners.addLayer(drawBanner(data, invocationCount++)))
+                .catch(error => console.error('Error fetching JSON:', error));
+        }
+
+        // Turn banner URL into API URL
+        function apiURL(url) {
+            return 'https://api.bannergress.com/bnrs/' + url.split('/').pop();
+        }
+
+        // Call fetchJsonData when the map is ready
+        map.whenReady(() => {
+            // Array of URLs to fetch
+            const urls = [
+                'https://bannergress.com/banner/recurse-aberdeen-595b',
+                'https://bannergress.com/banner/aberdeen-pride-37eb',
+                'https://bannergress.com/banner/fierce-aberdeen-bee7',
+                'https://bannergress.com/banner/artistic-aberdeen-ca16',
+                'https://bannergress.com/banner/aberdeen-be4e',
+                'https://bannergress.com/banner/hack-the-park-duthie-park-54a5',
+                'https://bannergress.com/banner/pridegress-aberdeen-5da5',
+                'https://bannergress.com/banner/hrh-queen-elizabeth-0e13',
+                'https://bannergress.com/banner/resistance-aberdeen-874e',
+                'https://bannergress.com/banner/duthie-park-second-sunday-ecfc',
+                'https://bannergress.com/banner/allenvale-second-sunday-c082',
+                'https://bannergress.com/banner/merry-christmas-aberdeen-fe60',
+                'https://bannergress.com/banner/machina-second-sunday-aberdeen-d540',
+                'https://bannergress.com/banner/tartan-time-838a',
+                'https://bannergress.com/banner/x-fac-leopards-of-aberdeen-46fa',
+                'https://bannergress.com/banner/the-dons-aberdeen-8f91',
+            ];
+
+            // Fetch all URLs concurrently
+            Promise.all(urls.map(url => fetchJsonData(apiURL(url))))
+                .then(dataArray => {
+                    map.fitBounds(allBanners.getBounds());
+
+                })
+                .catch(error => {
+                    console.error('One or more fetch calls failed:', error);
+                });
+        });
+
+        // Colours for the banner routes
+        const colours = [
+            "#FF0000", // Red
+            "#FF7F00", // Orange
+            "#FFFF00", // Yellow
+            "#7FFF00", // Chartreuse
+            "#00FF00", // Lime
+            "#00FF7F", // SpringGreen
+            "#00FFFF", // Cyan
+            "#007FFF", // Azure
+            "#0000FF", // Blue
+            "#7F00FF", // Violet
+            "#FF00FF", // Magenta
+            "#FF007F", // Rose
+            "#FF4500", // OrangeRed
+            "#FFD700", // Gold
+            "#FF8C00", // DarkOrange
+            "#8B4513", // SaddleBrown
+            "#32CD32", // LimeGreen
+            "#4682B4", // SteelBlue
+            "#9932CC", // DarkOrchid
+            "#8A2BE2"  // BlueViolet
+        ];
+
+        function drawBanner(bannerData, invocationCount) {
+            const colour = colours[invocationCount % colours.length];
+            const opacity = 0.6;
+
+            const latLongPairs = [];
+            Object.values(bannerData.missions).forEach(mission => {
+                mission.steps.forEach(step => {
+                    if (step.poi.type !== "unavailable") {
+                        const { latitude, longitude } = step.poi;
+                        latLongPairs.push([latitude, longitude]);
+                    }
+                });
+            });
+
+            const polyline = L.polyline(latLongPairs, { color: colour, opacity: 0.7 }).addTo(map);
+            const arrowSymbol = L.polylineDecorator(polyline, {
+                patterns: [
+                    { offset: '10', repeat: '50', symbol: L.Symbol.arrowHead({ pixelSize: 10, polygon: false, pathOptions: { color: colour, opacity: opacity } }) }
+                ]
+            }).addTo(map);
+            // featureGroup.addLayer(polyline);
+            const length = Number(bannerData.lengthMeters / 1000).toPrecision(2);
+            polyline.bindPopup(`
+                <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km)
+                <br/>
+                <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
+            `);
+
+            // Change opacity on hover
+            [polyline, arrowSymbol].forEach(element => {
+                element.on('mouseover', () => {
+                    polyline.setStyle({ opacity: 1 });
+                    arrowSymbol.setStyle({ opacity: 1 });
+                });
+                element.on('mouseout', () => {
+                    polyline.setStyle({ opacity: opacity });
+                    arrowSymbol.setStyle({ opacity: opacity });
+                });
+            });
+
+            map.addLayer(polyline);
+            return polyline;
+        }
+
+    </script>
+</body>
+
+</html>
