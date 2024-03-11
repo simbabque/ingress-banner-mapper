@@ -144,6 +144,7 @@
             document.getElementById("clear-banners").addEventListener("click", () => {
                 allBanners.clearLayers();
                 allBanners.remove();
+                invocationCount = 0;
             });
 
             // Colours for the banner routes
@@ -173,7 +174,9 @@
             // Function to draw a banner on the map
             function drawBanner(bannerData, invocationCount) {
                 const colour = colours[invocationCount % colours.length];
-                const opacity = 0.6;
+                const lowOpacity = 0.2;
+                const regularOpacity = 0.6;
+                const fullOpacity = 1;
 
                 const latLongPairs = [];
                 Object.values(bannerData.missions).forEach(mission => {
@@ -185,10 +188,14 @@
                     });
                 });
 
-                const polyline = L.polyline(latLongPairs, { color: colour, opacity: 0.7 }).addTo(allBanners);
+                const polyline = L.polyline(latLongPairs, { color: colour, opacity: regularOpacity }).addTo(allBanners);
                 const arrowSymbol = L.polylineDecorator(polyline, {
                     patterns: [
-                        { offset: '10', repeat: '50', symbol: L.Symbol.arrowHead({ pixelSize: 10, polygon: false, pathOptions: { color: colour, opacity: opacity } }) }
+                        {
+                            offset: '10', repeat: '50', symbol: L.Symbol.arrowHead({
+                                pixelSize: 10, polygon: false, pathOptions: { color: colour, opacity: regularOpacity }
+                            })
+                        }
                     ]
                 }).addTo(allBanners);
                 // featureGroup.addLayer(polyline);
@@ -202,12 +209,19 @@
                 // Change opacity on hover
                 [polyline, arrowSymbol].forEach(element => {
                     element.on('mouseover', () => {
-                        polyline.setStyle({ opacity: 1 });
-                        arrowSymbol.setStyle({ opacity: 1 });
+                        polyline.setStyle({ opacity: fullOpacity });
+                        arrowSymbol.setStyle({ opacity: fullOpacity });
+                        allBanners.eachLayer(layer => {
+                            if (layer !== polyline && layer !== arrowSymbol) {
+                                layer.setStyle({ opacity: lowOpacity });
+                            }
+                        });
                     });
+
                     element.on('mouseout', () => {
-                        polyline.setStyle({ opacity: opacity });
-                        arrowSymbol.setStyle({ opacity: opacity });
+                        allBanners.eachLayer(layer => {
+                            layer.setStyle({ opacity: regularOpacity });
+                        });
                     });
                 });
 
