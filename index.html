@@ -47,6 +47,30 @@
         .leaflet-popup-content img {
             max-width: 300px;
         }
+
+        #show-banners {
+            position: relative;
+        }
+
+        #loading-spinner {
+            display: none;
+            border: 5px solid #0099ff;
+            border-top: 5px solid #000000;
+            border-radius: 50%;
+            width: 5px;
+            height: 5px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 
@@ -62,7 +86,10 @@
             <textarea id="banner-links"
                 style="width: 100%; height: 200px;">https://bannergress.com/browse/aberdeen-city-54c6</textarea>
             <div>
-                <button id="show-banners">Show banners</button>
+                <button id="show-banners">
+                    Show banners
+                    <div id="loading-spinner"></div>
+                </button>
                 <button id="clear-banners">Clear banners</button>
             </div>
         </div>
@@ -82,6 +109,9 @@
 
             // Event listener for the "Show banners" button
             document.getElementById("show-banners").addEventListener("click", async () => {
+                // Show the loading spinner
+                document.getElementById('loading-spinner').style.display = 'inline-block';
+
                 const urlsToFetch = [];
                 for (const url of document.getElementById("banner-links").value.split('\n')) {
                     if (url.includes('/browse/')) {
@@ -91,15 +121,21 @@
                         urlsToFetch.push(url);
                     }
                 }
-                
+
                 // Fetch all URLs concurrently
                 Promise.all(urlsToFetch.map(url => fetchJsonData(apiURL(url))))
                     .then(dataArray => {
                         allBanners.addTo(map);
                         map.fitBounds(allBanners.getBounds());
+                        // Hide the loading spinner
+                        document.getElementById('loading-spinner').style.display = 'none';
+
                     })
                     .catch(error => {
                         console.error('One or more fetch calls failed:', error);
+
+                        // Hide the loading spinner
+                        document.getElementById('loading-spinner').style.display = 'none';
                     });
             });
 
