@@ -14,6 +14,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            font-family: sans-serif;
         }
 
         #map {
@@ -38,6 +39,11 @@
             box-shadow: -1px 0 5px rgba(0, 0, 0, 0.1);
         }
 
+        .nav-area button {
+            margin-top: 1em;
+            width: 100%;
+        }
+
         .leaflet-popup-content img {
             max-width: 300px;
         }
@@ -53,7 +59,7 @@
                     target="_blank">Bannergress</a> on a single
                 map at the same time.</p>
             <label for="banner-links">Paste your bannergress links here:</label>
-            <textarea id="banner-links"></textarea>
+            <textarea id="banner-links" style="width: 100%; height: 200px;"></textarea>
             <div>
                 <button id="show-banners">Show banners</button>
                 <button id="clear-banners">Clear banners</button>
