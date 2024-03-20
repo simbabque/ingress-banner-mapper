@@ -22,6 +22,12 @@ You can pass in the `banners` URL parameter to make the page prepoluate and load
 
 https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.com/banner/francesinha-8c71
 
+## Finding banners based on a place
+
+You can also pass in the `place` URL parameter. We will try to use the Bannergress API to find the next best place and fetch all banners. The output may vary as these places are not sorted. For parts of London, there may be two or more results, and calling it multiple times may return different things each time.
+
+file:///home/julien/code/private/banners/index.html?place=Ronnenberg
+
 ## Disclaimer
 
 This project is not affiliated with Niantic, Inc., Ingress, or Bannergress.

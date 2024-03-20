@@ -157,7 +157,7 @@
                             allBanners.addTo(map);
                             map.fitBounds(allBanners.getBounds());
                         }
-    
+
                         // Hide the loading spinner
                         document.getElementById('loading-spinner').style.display = 'none';
 
@@ -198,9 +198,30 @@
 
             // Fill the textarea with the URL parameter 'banners' if it exists
             document.addEventListener("DOMContentLoaded", function () {
-                let presetBanners;
-                if (presetBanners = getURLParameter('banners')) {
-                    document.getElementById('banner-links').value = presetBanners;
+                let urlParam;
+                if (urlParam = getURLParameter('banners')) {
+                    document.getElementById('banner-links').value = urlParam;
+                    showBanners();
+                } else if (urlParam = getURLParameter('place')) {
+                    fetch(`https://api.bannergress.com/places?used=true&collapsePlaces=true&limit=1&offset=0&query=${encodeURIComponent(urlParam)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Get the ID of the first result
+                            const id = data[0].id;
+
+                            // Construct the 'browse' URL
+                            const browseUrl = `https://bannergress.com/browse/${id}`;
+
+                            // Fill the 'browse' URL into the textarea
+                            document.getElementById('banner-links').value = browseUrl;
+
+                            // Trigger the 'Show banners' button click event
+                            document.getElementById('show-banners').click();
+                        })
+                        .catch(error => {
+                            console.error('Failed to fetch place:', error);
+                        });
+
                     showBanners();
                 }
             });
@@ -418,7 +439,7 @@
 
             // Function to get URL parameters
             function getURLParameter(name) {
-                return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search) || [, ""])[1].replace(/\+/g, '%20')) || null;
+                return new URLSearchParams(window.location.search).get(name);
             }
 
         </script>
