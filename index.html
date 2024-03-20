@@ -153,9 +153,11 @@
                 // Fetch all URLs concurrently
                 Promise.all(urlsToFetch.map(url => fetchJsonData(apiURL(url))))
                     .then(dataArray => {
-                        allBanners.addTo(map);
-                        map.fitBounds(allBanners.getBounds());
-
+                        if (dataArray.length) {
+                            allBanners.addTo(map);
+                            map.fitBounds(allBanners.getBounds());
+                        }
+    
                         // Hide the loading spinner
                         document.getElementById('loading-spinner').style.display = 'none';
 
