@@ -123,6 +123,7 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
+            // Stores the count of unique lat/long pairs to show UPV
             let uniqueLatLongPairs = {};
 
             // FeatureGroup to keep all banners visible
@@ -311,15 +312,8 @@
                 polyline._banner_id = bannerData.id;
                 polyline.associatedLayers = [arrowSymbol, startMarker, endMarker];
 
-                const length = Number(bannerData.lengthMeters / 1000).toPrecision(2);
+                const popupContent = createPopup(bannerData);
 
-                // Add a popup with the banner title and picture
-                const popupContent = `
-                    <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km)
-                    <br/>
-                    <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
-                    <a href="#" onclick="hideBanner('${bannerData.id}'); return false;">hide this banner</a>
-                `;
                 polyline.bindPopup(popupContent);
                 startMarker.bindPopup(popupContent);
                 endMarker.bindPopup(popupContent);
@@ -372,6 +366,40 @@
 
                     updateUniquePortalCount();
                 }
+            }
+
+            // Function to create a popup for a banner
+            function createPopup(bannerData) {
+                const length = Number(bannerData.lengthMeters / 1000).toPrecision(2);
+                let hasSequential = false;
+                let hasAnyOrder = false;
+
+                Object.values(bannerData.missions).forEach(mission => {
+                    if (mission.type === "sequential") {
+                        hasSequential = true;
+                    } else if (mission.type === "anyOrder") {
+                        hasAnyOrder = true;
+                    }
+                });
+
+                let missionType;
+                if (hasSequential && hasAnyOrder) {
+                    missionType = "<abbr title='sequential'>S</abbr>/<abbr title='any order'>AO</abbr>";
+                } else if (hasSequential) {
+                    missionType = "<abbr title='sequential'>S</abbr>";
+                } else if (hasAnyOrder) {
+                    missionType = "<abbr title='any order'>AO</abbr>";
+                } else {
+                    missionType = "";
+                }
+                // Add a popup with the banner title and picture
+                return `
+    <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km ${missionType})
+    <br/>
+    ${bannerData.warning ? `⚠️ <span style="color: #ffb21d;">${bannerData.warning}</span><br/>` : ''}
+    <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
+    <a href="#" onclick="hideBanner('${bannerData.id}'); return false;">❌ hide this banner</a>
+`;
             }
 
             // Function to update the count of unique portals
