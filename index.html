@@ -104,6 +104,8 @@
                 <button id="clear-banners">Clear banners</button>
             </div>
 
+            <p id="unique-portals"></p>
+
             <p>
                 This is not affiliated with Niantic, Inc., Ingress, or Bannergress. Raise issues on <a
                     href="https://github.com/simbabque/ingress-banner-mapper/issues">Github</a>.
@@ -116,10 +118,12 @@
         <script>
 
             // Initialise the map - we start in London
-            var map = L.map('map').setView([51.505, -0.09], 13);
+            let map = L.map('map').setView([51.505, -0.09], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
+
+            const uniqueLatLongPairs = new Set();
 
             // FeatureGroup to keep all banners visible
             const allBanners = L.featureGroup();
@@ -150,9 +154,12 @@
                     .then(dataArray => {
                         allBanners.addTo(map);
                         map.fitBounds(allBanners.getBounds());
+
                         // Hide the loading spinner
                         document.getElementById('loading-spinner').style.display = 'none';
 
+                        // Display the count of UPV
+                        document.getElementById('unique-portals').textContent = `Unique portals: ${uniqueLatLongPairs.size}`;
                     })
                     .catch(error => {
                         console.error('One or more fetch calls failed:', error);
@@ -164,11 +171,14 @@
             document.getElementById("show-banners").addEventListener("click", showBanners);
 
             // Event listener for the "Clear banners" button
-            document.getElementById("clear-banners").addEventListener("click", () => {
+            function clearBanners() {
                 allBanners.clearLayers();
                 allBanners.remove();
                 invocationCount = 0;
-            });
+                uniqueLatLongPairs.clear();    
+                document.getElementById('unique-portals').textContent = '';                         
+            }
+            document.getElementById("clear-banners").addEventListener("click", clearBanners);
 
             // Event listener for the example places to append their data-id as browse URLs into the textarea in a new line
             document.querySelectorAll('.example-place').forEach(place => place.addEventListener('click', (event) => {
@@ -272,6 +282,9 @@
                             if (step.poi && step.poi.type !== "unavailable") {
                                 const { latitude, longitude } = step.poi;
                                 latLongPairs.push([latitude, longitude]);
+
+                                // Add the latitude/longitude pair to the Set
+                                uniqueLatLongPairs.add(JSON.stringify([latitude, longitude]));
                             }
                         });
                     });
