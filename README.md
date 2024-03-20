@@ -16,6 +16,12 @@ This project displays banners from [Bannergress](https://bannergress.com) on a m
 4. Click the "Clear banners" button to remove all banners from the map.
 
 
+## Presetting a banner or zoom to share with others
+
+You can pass in the `banners` URL parameter to make the page prepoluate and load a specific banner or area. Here's an example:
+
+https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.com/banner/francesinha-8c71
+
 ## Disclaimer
 
 This project is not affiliated with Niantic, Inc., Ingress, or Bannergress.

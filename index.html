@@ -84,16 +84,18 @@
                 map at the same time.</p>
             <p>It can also display all the banners from a place, such as a city or a country, by pasting the place's
                 "browse" URL below.</p>
-            <p>Here are some suggestion: 
+            <p>Here are some suggestion:
                 <a href="#" class="example-place" data-id="london-6549">London</a>,
                 <a href="#" class="example-place" data-id="lisbon-1eae">Lisbon</a>,
                 <a href="#" class="example-place" data-id="porto-9b95">Porto</a>,
                 <a href="#" class="example-place" data-id="hanover-6716">Hannover</a>, or
-                <a href="#" class="example-banners" data-id="recurse-aberdeen-595b,artistic-aberdeen-ca16,resistance-aberdeen-874e">some missions in Aberdeen that make a good route</a>.</p>
+                <a href="#" class="example-banners"
+                    data-id="recurse-aberdeen-595b,artistic-aberdeen-ca16,resistance-aberdeen-874e">some missions in
+                    Aberdeen that make a good route</a>.
+            </p>
 
             <label for="banner-links">Paste your bannergress links here:</label>
-            <textarea id="banner-links"
-                style="width: 100%; height: 200px;"></textarea>
+            <textarea id="banner-links" style="width: 100%; height: 200px;"></textarea>
             <div>
                 <button id="show-banners">
                     Show banners
@@ -103,7 +105,8 @@
             </div>
 
             <p>
-                This is not affiliated with Niantic, Inc., Ingress, or Bannergress. Raise issues on <a href="https://github.com/simbabque/ingress-banner-mapper/issues">Github</a>.
+                This is not affiliated with Niantic, Inc., Ingress, or Bannergress. Raise issues on <a
+                    href="https://github.com/simbabque/ingress-banner-mapper/issues">Github</a>.
             </p>
         </div>
 
@@ -121,7 +124,7 @@
             const allBanners = L.featureGroup();
 
             // Event listener for the "Show banners" button
-            document.getElementById("show-banners").addEventListener("click", async () => {
+            async function showBanners() {
                 // Show the loading spinner
                 document.getElementById('loading-spinner').style.display = 'inline-block';
 
@@ -156,7 +159,8 @@
                         // Hide the loading spinner
                         document.getElementById('loading-spinner').style.display = 'none';
                     });
-            });
+            }
+            document.getElementById("show-banners").addEventListener("click", showBanners);
 
             // Event listener for the "Clear banners" button
             document.getElementById("clear-banners").addEventListener("click", () => {
@@ -176,6 +180,16 @@
                 const textarea = document.getElementById('banner-links');
                 textarea.value += event.target.dataset.id.split(',').map(id => `https://bannergress.com/banner/${id}`).join('\n') + '\n';
             }));
+
+
+            // Fill the textarea with the URL parameter 'banners' if it exists
+            document.addEventListener("DOMContentLoaded", function() {
+                let presetBanners;
+                if (presetBanners = getURLParameter('banners')) {
+                    document.getElementById('banner-links').value = presetBanners;
+                    showBanners();
+                }
+            });
 
             // Turn banner URL into API URL
             function apiURL(url) {
@@ -303,6 +317,11 @@
 
                 allBanners.addLayer(polyline);
                 return polyline;
+            }
+
+            // Function to get URL parameters
+            function getURLParameter(name) {
+                return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search) || [, ""])[1].replace(/\+/g, '%20')) || null;
             }
 
         </script>
