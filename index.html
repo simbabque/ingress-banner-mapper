@@ -123,7 +123,7 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            const uniqueLatLongPairs = new Set();
+            let uniqueLatLongPairs = {};
 
             // FeatureGroup to keep all banners visible
             const allBanners = L.featureGroup();
@@ -159,7 +159,7 @@
                         document.getElementById('loading-spinner').style.display = 'none';
 
                         // Display the count of UPV
-                        document.getElementById('unique-portals').textContent = `Unique portals: ${uniqueLatLongPairs.size}`;
+                        updateUniquePortalCount();
                     })
                     .catch(error => {
                         console.error('One or more fetch calls failed:', error);
@@ -175,8 +175,8 @@
                 allBanners.clearLayers();
                 allBanners.remove();
                 invocationCount = 0;
-                uniqueLatLongPairs.clear();    
-                document.getElementById('unique-portals').textContent = '';                         
+                uniqueLatLongPairs = {};
+                updateUniquePortalCount();
             }
             document.getElementById("clear-banners").addEventListener("click", clearBanners);
 
@@ -283,8 +283,9 @@
                                 const { latitude, longitude } = step.poi;
                                 latLongPairs.push([latitude, longitude]);
 
-                                // Add the latitude/longitude pair to the Set
-                                uniqueLatLongPairs.add(JSON.stringify([latitude, longitude]));
+                                // Increment the count for the lat/long pair
+                                const key = JSON.stringify([latitude, longitude]);
+                                uniqueLatLongPairs[key] = (uniqueLatLongPairs[key] || 0) + 1;
                             }
                         });
                     });
@@ -306,6 +307,10 @@
                     ]
                 }).addTo(allBanners);
 
+                // Give the polyline a unique ID and keep the other bits close to it
+                polyline._banner_id = bannerData.id;
+                polyline.associatedLayers = [arrowSymbol, startMarker, endMarker];
+
                 const length = Number(bannerData.lengthMeters / 1000).toPrecision(2);
 
                 // Add a popup with the banner title and picture
@@ -313,6 +318,7 @@
                     <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km)
                     <br/>
                     <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
+                    <a href="#" onclick="hideBanner('${bannerData.id}'); return false;">hide this banner</a>
                 `;
                 polyline.bindPopup(popupContent);
                 startMarker.bindPopup(popupContent);
@@ -339,6 +345,45 @@
 
                 allBanners.addLayer(polyline);
                 return polyline;
+            }
+
+            // Function to hide a banner
+            function hideBanner(id) {
+                // Find the polyline with the given ID
+                const polyline = allBanners.getLayers().find(layer => layer._banner_id === id);
+
+                // Remove the polyline from the map
+                if (polyline && map.hasLayer(polyline)) {
+                    allBanners.removeLayer(polyline);
+                    polyline.associatedLayers.forEach(layer => {
+                        if (map.hasLayer(layer)) {
+                            allBanners.removeLayer(layer);
+                        }
+                    });
+
+                    // Decrement the count for each lat/long pair of the removed banner
+                    polyline.getLatLngs().forEach(latlng => {
+                        const key = JSON.stringify([latlng.lat, latlng.lng]);
+                        uniqueLatLongPairs[key]--;
+                        if (uniqueLatLongPairs[key] === 0) {
+                            delete uniqueLatLongPairs[key];
+                        }
+                    });
+
+                    updateUniquePortalCount();
+                }
+            }
+
+            // Function to update the count of unique portals
+            function updateUniquePortalCount() {
+                const count = Object.keys(uniqueLatLongPairs).length;
+                const uniquePortals = document.getElementById('unique-portals');
+
+                if (count > 0) {
+                    uniquePortals.textContent = `Unique portals: ${count}`;
+                } else {
+                    uniquePortals.textContent = '';
+                }
             }
 
             // Function to get URL parameters
