@@ -112,6 +112,7 @@
 
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+        <script src="https://unpkg.com/leaflet-svg-shape-markers@1.4.0/dist/leaflet-svg-shape-markers.js"></script>
         <script>
 
             // Initialise the map - we start in London
@@ -183,7 +184,7 @@
 
 
             // Fill the textarea with the URL parameter 'banners' if it exists
-            document.addEventListener("DOMContentLoaded", function() {
+            document.addEventListener("DOMContentLoaded", function () {
                 let presetBanners;
                 if (presetBanners = getURLParameter('banners')) {
                     document.getElementById('banner-links').value = presetBanners;
@@ -253,7 +254,7 @@
                 "#32CD32", // LimeGreen
                 "#4682B4", // SteelBlue
                 "#9932CC", // DarkOrchid
-                "#8A2BE2",  // BlueViolet
+                "#8A2BE2", // BlueViolet
                 "#FFFF00", // Yellow
                 "#00FF00", // Lime
             ];
@@ -278,6 +279,9 @@
                     console.log(bannerData);
                     console.error(e);
                 };
+                // draw a filled circle at the start and end of the banner
+                const endMarker = L.shapeMarker(latLongPairs[latLongPairs.length - 1], { shape: 'diamond', color: 'black', opacity: 0.4, fillColor: colour, fillOpacity: fullOpacity }).addTo(allBanners);
+                const startMarker = L.circleMarker(latLongPairs[0], { color: 'black', opacity: 0.4, fillColor: colour, fillOpacity: fullOpacity }).addTo(allBanners);
                 const polyline = L.polyline(latLongPairs, { color: colour, opacity: regularOpacity }).addTo(allBanners);
                 const arrowSymbol = L.polylineDecorator(polyline, {
                     patterns: [
@@ -288,16 +292,21 @@
                         }
                     ]
                 }).addTo(allBanners);
-                // featureGroup.addLayer(polyline);
+
                 const length = Number(bannerData.lengthMeters / 1000).toPrecision(2);
-                polyline.bindPopup(`
-                <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km)
-                <br/>
-                <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
-            `);
+
+                // Add a popup with the banner title and picture
+                const popupContent = `
+                    <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km)
+                    <br/>
+                    <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
+                `;
+                polyline.bindPopup(popupContent);
+                startMarker.bindPopup(popupContent);
+                endMarker.bindPopup(popupContent);
 
                 // Change opacity on hover
-                [polyline, arrowSymbol].forEach(element => {
+                [polyline, arrowSymbol, startMarker, endMarker].forEach(element => {
                     element.on('mouseover', () => {
                         polyline.setStyle({ opacity: fullOpacity });
                         arrowSymbol.setStyle({ opacity: fullOpacity });
