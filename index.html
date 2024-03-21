@@ -404,6 +404,8 @@
                         hasAnyOrder = true;
                     }
                 });
+                
+                const missionsPerKm = bannerData.numberOfMissions / length;
 
                 let missionType;
                 if (hasSequential && hasAnyOrder) {
@@ -417,7 +419,7 @@
                 }
                 // Add a popup with the banner title and picture
                 return `
-    <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km ${missionType})
+    <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km, ${missionsPerKm.toPrecision(3)}<abbr title="mission/km">mpk</abbr>, ${missionType})
     <br/>
     ${bannerData.warning ? `⚠️ <span style="color: #ffb21d;">${bannerData.warning}</span><br/>` : ''}
     <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
