@@ -307,9 +307,11 @@
                                 const { latitude, longitude } = step.poi;
                                 latLongPairs.push([latitude, longitude]);
 
-                                // Increment the count for the lat/long pair
-                                const key = JSON.stringify([latitude, longitude]);
-                                uniqueLatLongPairs[key] = (uniqueLatLongPairs[key] || 0) + 1;
+                                // Increment the count for the lat/long pair that's a portal
+                                if (step.poi.type === "portal") {
+                                    const key = JSON.stringify([latitude, longitude]);
+                                    uniqueLatLongPairs[key] = (uniqueLatLongPairs[key] || 0) + 1;
+                                }
                             }
                         });
                     });
