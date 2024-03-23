@@ -337,7 +337,7 @@
                 polyline._banner_id = bannerData.id;
                 polyline.associatedLayers = [arrowSymbol, startMarker, endMarker];
 
-                const popupContent = createPopup(bannerData);
+                const popupContent = createPopup(bannerData, polyline);
 
                 polyline.bindPopup(popupContent);
                 startMarker.bindPopup(popupContent);
@@ -394,11 +394,12 @@
             }
 
             // Function to create a popup for a banner
-            function createPopup(bannerData) {
+            function createPopup(bannerData, polyline) {
                 const length = Number(bannerData.lengthMeters / 1000).toPrecision(2);
+                
+                // Determine the mission type
                 let hasSequential = false;
                 let hasAnyOrder = false;
-
                 Object.values(bannerData.missions).forEach(mission => {
                     if (mission.type === "sequential") {
                         hasSequential = true;
@@ -406,9 +407,11 @@
                         hasAnyOrder = true;
                     }
                 });
-                
+
+                // Calculate the number of missions per km
                 const missionsPerKm = bannerData.numberOfMissions / length;
 
+                // Determine the mission type
                 let missionType;
                 if (hasSequential && hasAnyOrder) {
                     missionType = "<abbr title='sequential'>S</abbr>/<abbr title='any order'>AO</abbr>";
@@ -419,14 +422,28 @@
                 } else {
                     missionType = "";
                 }
+
+                // Create a zoom link
+                const bounds = polyline.getBounds()
+                const boundsArray = [
+                    [bounds._southWest.lat, bounds._southWest.lng],
+                    [bounds._northEast.lat, bounds._northEast.lng]
+                ];
+                const zoomLink = `<a href="#" onclick="map.fitBounds(${JSON.stringify(boundsArray).replace(/"/g, '&quot;')}); return false;">🔍 zoom to this banner</a>`;
+
                 // Add a popup with the banner title and picture
                 return `
     <a href="https://bannergress.com/banner/${bannerData.id}">${bannerData.title}</a> (${length}km, ${missionsPerKm.toPrecision(3)}<abbr title="mission/km">mpk</abbr>, ${missionType})
     <br/>
     ${bannerData.warning ? `⚠️ <span style="color: #ffb21d;">${bannerData.warning}</span><br/>` : ''}
     <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
-    <a href="#" onclick="hideBanner('${bannerData.id}'); return false;">❌ hide this banner</a>
+    <a href="#" onclick="hideBanner('${bannerData.id}'); return false;">❌ hide this banner</a> ${zoomLink}
 `;
+            }
+
+            // Function to calculate the bounds of a set of lat/long pairs
+            function calculateBannerBounds(latLongPairs) {
+                return latLongPairs.reduce((bounds, latLong) => bounds.extend(latLong), L.latLngBounds(latLongPairs[0]));
             }
 
             // Function to update the count of unique portals
