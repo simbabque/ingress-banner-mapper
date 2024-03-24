@@ -115,6 +115,7 @@
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
         <script src="https://unpkg.com/leaflet-svg-shape-markers@1.4.0/dist/leaflet-svg-shape-markers.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
         <script>
 
             // Initialise the map - we start in London
@@ -496,7 +497,12 @@
     <br/>
     ${bannerData.warning ? `⚠️ <span style="color: #ffb21d;">${bannerData.warning}</span><br/>` : ''}
     <img src="https://api.bannergress.com/${bannerData.picture}" width="300">
-    <a href="#" onclick="hideBanner('${bannerData.id}'); return false;">❌ hide this banner</a> ${zoomLink}
+    <ul>
+        <li><a href="#" onclick="hideBanner('${bannerData.id}'); return false;">❌ hide this banner</a></li>
+        <li>${zoomLink}</li>
+        <li id="elevation-link-${bannerData.id}"><a href="#" onclick="showElevation('${bannerData.id}'); return false;">🏔️ get elevation</a></li>
+    </ul>
+    <div id="elevation-${bannerData.id}"></div>
 `;
             }
 
@@ -520,6 +526,132 @@
             // Function to get URL parameters
             function getURLParameter(name) {
                 return new URLSearchParams(window.location.search).get(name);
+            }
+
+            async function showElevation(bannerId) {
+                await fetchElevation(bannerId);
+                const data = allBannersByBannerId[bannerId].polyline.getLatLngs().map((latLng, i) => ({
+                    distance: i, // Replace this with the actual distance along the polyline
+                    elevation: latLng.alt // Replace this with the actual elevation data
+                }));
+
+                // Create the SVG
+                const svg = d3.select(`#elevation-${bannerId}`).append('svg')
+                    .attr('width', 300)
+                    .attr('height', 70);
+
+                // Create the scales
+                const xScale = d3.scaleLinear()
+                    .domain(d3.extent(data, d => d.distance))
+                    .range([0, 300]);
+
+                const yScale = d3.scaleLinear()
+                    .domain(d3.extent(data, d => d.elevation))
+                    .range([70, 0]);
+
+                // Create the line generator
+                const line = d3.line()
+                    .x(d => xScale(d.distance))
+                    .y(d => yScale(d.elevation));
+
+                // Create the y-axis
+                const yAxis = d3.axisLeft(yScale)
+                    .ticks(5)
+                    .tickFormat(d => `${d} m`);
+
+                // Add the y-axis to the SVG
+                svg.append('g')
+                    .attr('transform', 'translate(40, 0)') // Adjust these values as needed
+                    .call(yAxis);
+
+                // Draw the line
+                svg.append('path')
+                    .datum(data)
+                    .attr('fill', 'none')
+                    .attr('stroke', 'steelblue')
+                    .attr('stroke-linejoin', 'round')
+                    .attr('stroke-linecap', 'round')
+                    .attr('stroke-width', 1.5)
+                    .attr('d', line)
+                    .attr('transform', 'translate(40, 0)'); // Adjust this value as needed
+
+                // Calculate the total elevation gain and loss
+                let totalElevationGain = 0;
+                let totalElevationLoss = 0;
+                for (let i = 1; i < data.length; i++) {
+                    const elevationChange = data[i].elevation - data[i - 1].elevation;
+                    if (elevationChange > 0) {
+                        totalElevationGain += elevationChange;
+                    } else if (elevationChange < 0) {
+                        totalElevationLoss -= elevationChange; // Subtract to make the value positive
+                    }
+                }
+
+                // Replace the link with the total elevation gain and loss
+                document.getElementById(`elevation-link-${bannerId}`).innerHTML = `🏔️ elevation: &#9650; ${totalElevationGain}m, &#9660; ${totalElevationLoss}m`;
+            }
+
+            // Function that uses the open-elevation API to get the elevation of a banner, takes a banner id
+            async function fetchElevation(bannerId) {
+                const banner = allBannersByBannerId[bannerId];
+                if (banner.polyline._has_elevation) {
+                    return;
+                }
+
+                const latLongPairs = banner.polyline.getLatLngs().map(latlng => ({ latitude: latlng.lat, longitude: latlng.lng }));
+
+                const client = new OpenElevationClient();
+                const results = await client.lookup(latLongPairs);
+
+                // Add the elevation to the lat/long pairs
+                results.forEach((result, index) => {
+                    latLongPairs[index].elevation = result.elevation;
+                });
+
+                // Update the polyline with the new lat/long pairs
+                const newLatLngs = latLongPairs.map(latLongPair => L.latLng(latLongPair.latitude, latLongPair.longitude, latLongPair.elevation));
+                banner.polyline.setLatLngs(newLatLngs);
+                banner.polyline._has_elevation = true;
+            }
+
+
+            /**
+             * Represents a client for the Open Elevation API.
+             * 
+             * const client = new OpenElevationClient();
+             * client.lookup([
+             *       { latitude: 10, longitude: 10 },
+             *       { latitude: 20, longitude: 20 },
+             *       { latitude: 41.161758, longitude: -8.583933 }
+             *  ]).then(results => {
+             *      console.log(results);
+             *  });
+             */
+            class OpenElevationClient {
+                /**
+                 * Creates a new instance of the OpenElevationClient class.
+                 */
+                constructor() {
+                    this.baseUrl = 'https://api.open-elevation.com/api/v1';
+                }
+
+                /**
+                 * Performs a lookup for elevation data based on the provided locations.
+                 * @param {Array} locations - An array of locations to lookup elevation data for.
+                 * @returns {Promise<Array>} - A promise that resolves to an array of elevation results.
+                 */
+                lookup(locations) {
+                    return fetch(`${this.baseUrl}/lookup`, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ locations })
+                    })
+                        .then(response => response.json())
+                        .then(data => data.results);
+                }
             }
 
         </script>
