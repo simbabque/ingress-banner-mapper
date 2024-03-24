@@ -128,6 +128,7 @@
 
             // FeatureGroup to keep all banners visible
             const allBanners = L.featureGroup();
+            let allBannersByBannerId = {};
 
             // Event listener for the "Show banners" button
             async function showBanners() {
@@ -173,10 +174,53 @@
             }
             document.getElementById("show-banners").addEventListener("click", showBanners);
 
+            let isPopupOpen = false;
+
+            // When a popup opens, decrease the opacity of all other banners
+            // known issue: panning the map while a popup is open restores the arrow-head opacity
+            map.on('popupopen', function (e) {
+                isPopupOpen = true;
+
+                // find the banner polyline to highlight
+                const activePolyline = e.popup._source._banner_id ? allBannersByBannerId[e.popup._source._banner_id].polyline : Object.values(allBannersByBannerId).find(banner => banner.polyline.associatedLayers.includes(e.popup._source)).polyline;
+
+                // decrease the opacity of all other banners
+                Object.values(allBannersByBannerId).forEach(banner => {
+                    const opacity = banner.polyline === activePolyline ? fullOpacity : lowOpacity;
+                    banner.polyline.setStyle({ opacity: opacity, fillOpacity: opacity });
+                    banner.polyline.associatedLayers.forEach(layer => {
+                        layer.setStyle({ opacity: opacity, fillOpacity: opacity });
+                    });
+
+                    // fiddle with the arrow-head opacity in the actual polylineDecorator
+                    banner.polyline.associatedLayers[0].options.patterns[0].symbol.options.pathOptions.opacity = opacity;
+                });
+            });
+
+            // When a popup closes, restore the opacity of all banners
+            map.on('popupclose', function (e) {
+                isPopupOpen = false;
+
+                // find the banner polyline to reset opacity
+                const activePolyline = e.popup._source._banner_id ? allBannersByBannerId[e.popup._source._banner_id].polyline : Object.values(allBannersByBannerId).find(banner => banner.polyline.associatedLayers.includes(e.popup._source)).polyline;
+
+                // reset the opacity of all banners
+                Object.values(allBannersByBannerId).forEach(banner => {
+                    banner.polyline.setStyle({ opacity: regularOpacity, fillOpacity: fullOpacity });
+                    banner.polyline.associatedLayers.forEach(layer => {
+                        layer.setStyle({ opacity: regularOpacity, fillOpacity: fullOpacity });
+                    });
+
+                    // reset the arrow-head opacity in the actual polylineDecorator
+                    banner.polyline.associatedLayers[0].options.patterns[0].symbol.options.pathOptions.opacity = regularOpacity;
+                });
+            });
+
             // Event listener for the "Clear banners" button
             function clearBanners() {
                 allBanners.clearLayers();
                 allBanners.remove();
+                allBannersByBannerId = {};
                 invocationCount = 0;
                 uniqueLatLongPairs = {};
                 updateUniquePortalCount();
@@ -293,12 +337,13 @@
                 "#00B300", // Dark Lime
             ];
 
+            const lowOpacity = 0.2;
+            const regularOpacity = 0.6;
+            const fullOpacity = 1;
+
             // Function to draw a banner on the map
             function drawBanner(bannerData, invocationCount) {
                 const colour = colours[invocationCount % colours.length];
-                const lowOpacity = 0.2;
-                const regularOpacity = 0.6;
-                const fullOpacity = 1;
                 const latLongPairs = [];
                 try {
                     Object.values(bannerData.missions).forEach(mission => {
@@ -319,6 +364,7 @@
                     console.log(bannerData);
                     console.error(e);
                 };
+
                 // draw a filled circle at the start and end of the banner
                 const endMarker = L.shapeMarker(latLongPairs[latLongPairs.length - 1], { shape: 'diamond', color: 'black', opacity: 0.4, fillColor: colour, fillOpacity: fullOpacity }).addTo(allBanners);
                 const startMarker = L.circleMarker(latLongPairs[0], { color: 'black', opacity: 0.4, fillColor: colour, fillOpacity: fullOpacity }).addTo(allBanners);
@@ -337,6 +383,12 @@
                 polyline._banner_id = bannerData.id;
                 polyline.associatedLayers = [arrowSymbol, startMarker, endMarker];
 
+                // Store the banner data and the associated line and layers for later use
+                allBannersByBannerId[bannerData.id] = {
+                    bannerData: bannerData,
+                    polyline: polyline,
+                };
+
                 const popupContent = createPopup(bannerData, polyline);
 
                 polyline.bindPopup(popupContent);
@@ -346,18 +398,23 @@
                 // Change opacity on hover
                 [polyline, arrowSymbol, startMarker, endMarker].forEach(element => {
                     element.on('mouseover', () => {
-                        polyline.setStyle({ opacity: fullOpacity });
-                        arrowSymbol.setStyle({ opacity: fullOpacity });
+                        if (isPopupOpen) return;
                         allBanners.eachLayer(layer => {
                             if (layer !== polyline && layer !== arrowSymbol) {
-                                layer.setStyle({ opacity: lowOpacity });
+                                layer.setStyle({ opacity: lowOpacity, fillOpacity: lowOpacity });
+                            } else {
+                                polyline.setStyle({ opacity: fullOpacity });
+                                arrowSymbol.setStyle({ opacity: fullOpacity });
+                                startMarker.setStyle({ opacity: fullOpacity, fillOpacity: fullOpacity });
+                                endMarker.setStyle({ opacity: fullOpacity, fillOpacity: fullOpacity });
                             }
                         });
                     });
 
                     element.on('mouseout', () => {
+                        if (isPopupOpen) return;
                         allBanners.eachLayer(layer => {
-                            layer.setStyle({ opacity: regularOpacity });
+                            layer.setStyle({ opacity: regularOpacity, fillOpacity: fullOpacity });
                         });
                     });
                 });
@@ -391,12 +448,14 @@
 
                     updateUniquePortalCount();
                 }
+                // Remove the banner from allbannerByBannerId
+                delete allBannersByBannerId[id];
             }
 
             // Function to create a popup for a banner
             function createPopup(bannerData, polyline) {
                 const length = Number(bannerData.lengthMeters / 1000).toPrecision(2);
-                
+
                 // Determine the mission type
                 let hasSequential = false;
                 let hasAnyOrder = false;
