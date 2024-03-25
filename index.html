@@ -119,6 +119,55 @@
         <script src="https://unpkg.com/leaflet.locatecontrol"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
         <script>
+            /**
+             * Represents a custom Leaflet control for fetching banners.
+             * @class FetchBannersControl
+             * @extends L.Control
+             */
+            class FetchBannersControl extends L.Control {
+                /**
+                 * Creates an instance of FetchBannersControl.
+                 * @param {Object} [options={}] - The options for the control.
+                 * @param {Function} options._onClick - The callback to call when the control is clicked.
+                 */
+                constructor(options = {}) {
+                    super(options);
+                    this.options = options;
+                    // require an option _onClick to be set
+                    if (!options._onClick) {
+                        throw new Error('No _onClick callback provided');
+                    }
+                }
+
+                /**
+                 * Adds the control to the map.
+                 * @param {L.Map} map - The Leaflet map instance.
+                 * @returns {HTMLElement} The container element of the control.
+                 */
+                onAdd(map) {
+                    const container = L.DomUtil.create('div', 'fetch-banners-control leaflet-bar leaflet-control');
+                    this._container = container;
+                    this._map = map;
+                    this._link = L.DomUtil.create('a', 'leaflet-bar-part leaflet-bar-part-single', container);
+                    this._link.href = '#';
+                    this._link.title = 'Fetch all banners in view';
+                    this._link.id = 'fetch-banners';
+                    this._link.innerHTML = '🗺️';
+                    this._link.role = 'button';
+                    L.DomEvent.on(
+                        this._link,
+                        "click",
+                        function (ev) {
+                            L.DomEvent.stopPropagation(ev);
+                            L.DomEvent.preventDefault(ev);
+                            this.options._onClick();
+                        },
+                        this
+                    ).on(this._link, "dblclick", L.DomEvent.stopPropagation);
+
+                    return container;
+                }
+            }
 
             // Initialise the map - we start in London
             let map = L.map('map').setView([51.505, -0.09], 13);
@@ -134,7 +183,26 @@
                 setView: 'once',
                 showpopup: false,
             }).addTo(map);
-        
+
+            // Button to fetch banners from the map view
+            const fetchBannersControl = new FetchBannersControl({
+                position: 'topleft',
+                _onClick: async () => {
+                    const bounds = map.getBounds();
+                    const minLat = bounds.getSouth();
+                    const maxLat = bounds.getNorth();
+                    const minLng = bounds.getWest();
+                    const maxLng = bounds.getEast();
+                    const url = `https://api.bannergress.com/bnrs?orderBy=created&orderDirection=DESC&online=true&minLatitude=${minLat}&maxLatitude=${maxLat}&minLongitude=${minLng}&maxLongitude=${maxLng}&limit=100`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    // this expects URLs, but passing in the ID will still work
+                    showBanners(data.map(banner => banner.id));
+                }
+            });
+            fetchBannersControl.addTo(map);
+
             // Stores the count of unique lat/long pairs to show UPV
             let uniqueLatLongPairs = {};
 
@@ -142,8 +210,8 @@
             const allBanners = L.featureGroup();
             let allBannersByBannerId = {};
 
-            // Event listener for the "Show banners" button
-            async function showBanners() {
+            // Event listener for the "Show banners" button (optional argument: data to show)
+            async function loadBannersFromLinks() {
                 // Show the loading spinner
                 document.getElementById('loading-spinner').style.display = 'inline-block';
 
@@ -162,29 +230,9 @@
                         urlsToFetch.push(url);
                     }
                 }
-
-                // Fetch all URLs concurrently
-                Promise.all(urlsToFetch.map(url => fetchJsonData(apiURL(url))))
-                    .then(dataArray => {
-                        if (dataArray.length) {
-                            allBanners.addTo(map);
-                            map.fitBounds(allBanners.getBounds());
-                        }
-
-                        // Hide the loading spinner
-                        document.getElementById('loading-spinner').style.display = 'none';
-
-                        // Display the count of UPV
-                        updateUniquePortalCount();
-                    })
-                    .catch(error => {
-                        console.error('One or more fetch calls failed:', error);
-
-                        // Hide the loading spinner
-                        document.getElementById('loading-spinner').style.display = 'none';
-                    });
+                 showBanners(urlsToFetch);
             }
-            document.getElementById("show-banners").addEventListener("click", showBanners);
+            document.getElementById("show-banners").addEventListener("click", loadBannersFromLinks);
 
             let isPopupOpen = false;
 
@@ -282,18 +330,48 @@
                 }
             });
 
+            // Function to show banners on the map
+            async function showBanners(urlsToFetch = []) {
+                // Fetch all URLs concurrently
+                Promise.all(urlsToFetch.map(url => fetchJsonData(apiURL(url))))
+                    .then(dataArray => {
+                        if (dataArray.length) {
+                            allBanners.addTo(map);
+                            map.fitBounds(allBanners.getBounds());
+                        }
+
+                        // Hide the loading spinner
+                        document.getElementById('loading-spinner').style.display = 'none';
+
+                        // Display the count of UPV
+                        updateUniquePortalCount();
+                    })
+                    .catch(error => {
+                        console.error('One or more fetch calls failed:', error);
+
+                        // Hide the loading spinner
+                        document.getElementById('loading-spinner').style.display = 'none';
+                    });
+            }
+
             // Turn banner URL into API URL
             function apiURL(url) {
                 return 'https://api.bannergress.com/bnrs/' + url.split('/').pop();
             }
 
-            // Function to retrieve a single banner JSON and draw it on the map
+            // Function to retrieve a single banner JSON and draw it on the map. Returns a promise.
+            // Doesn't fetch if the banner is already on the map.
             let invocationCount = 0;
             function fetchJsonData(url) {
-                return fetch(url)
+                const bannerId = url.split('/').pop();
+                if (allBannersByBannerId[bannerId]) {
+                    return Promise.resolve();
+                } else {
+                    return fetch(url)
                     .then(response => response.json())
                     .then(data => allBanners.addLayer(drawBanner(data, invocationCount++)))
                     .catch(error => console.error('Error fetching JSON:', error));
+                }
             }
 
             // Function to turn a place into a list of banners
@@ -625,7 +703,6 @@
                 banner.polyline._has_elevation = true;
             }
 
-
             /**
              * Represents a client for the Open Elevation API.
              * 
@@ -664,7 +741,6 @@
                         .then(data => data.results);
                 }
             }
-
         </script>
 </body>
 
