@@ -6,6 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
     <style>
         body,
         html {
@@ -115,6 +116,7 @@
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
         <script src="https://unpkg.com/leaflet-svg-shape-markers@1.4.0/dist/leaflet-svg-shape-markers.js"></script>
+        <script src="https://unpkg.com/leaflet.locatecontrol"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
         <script>
 
@@ -124,6 +126,15 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
+            // Button to locate the user
+            const lc = L.control.locate({
+                position: 'topleft',
+                flyTo: false,
+                keepCurrentZoomLevel: true,
+                setView: 'once',
+                showpopup: false,
+            }).addTo(map);
+        
             // Stores the count of unique lat/long pairs to show UPV
             let uniqueLatLongPairs = {};
 
