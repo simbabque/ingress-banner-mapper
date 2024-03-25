@@ -544,7 +544,7 @@
 
             // Function to create a popup for a banner
             function createPopup(bannerData, polyline) {
-                const length = Number(bannerData.lengthMeters / 1000).toPrecision(2);
+                const length = Number(bannerData.lengthMeters / 1000).toFixed(2);
 
                 // Determine the mission type
                 let hasSequential = false;
