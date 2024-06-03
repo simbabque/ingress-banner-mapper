@@ -17,32 +17,41 @@
             overflow: hidden;
             font-family: sans-serif;
         }
-
-        #map {
-            width: 100%;
-            height: 100%;
+        
+        p {
+            padding: 0;
+            margin: 0;
         }
-
         .flex-container {
             display: flex;
+            flex-direction: column;
             height: 100%;
         }
 
         #map {
             flex-grow: 1;
+            width: 100%;
         }
 
         .nav-area {
-            width: 200px;
-            /* Adjust as needed */
+            box-sizing: border-box;
+            width: 100%;
+            height: 20%;
+            overflow-y: auto;
             background-color: #f8f9fa;
-            padding: 1em;
-            box-shadow: -1px 0 5px rgba(0, 0, 0, 0.1);
+            margin: 1em;
         }
 
+        .nav-area > p, .nav-area .full-size {
+            width: calc(100% - 2em);
+        }
+        
         .nav-area button {
-            margin-top: 1em;
-            width: 100%;
+            margin-top: .5em;
+        }
+
+        .nav-area > p {
+            margin-bottom: .5em;
         }
 
         .leaflet-popup-content img {
@@ -80,9 +89,22 @@
 
         <div id="map"></div>
         <div class="nav-area">
+            <label for="banner-links">Paste your Bannergress links here:</label>
+            <textarea id="banner-links" class="full-size"></textarea>
+            <div>
+                <button id="show-banners" class="full-size">
+                    Show banners
+                    <div id="loading-spinner"></div>
+                </button>
+                <button id="clear-banners" class="full-size">Clear banners</button>
+            </div>
+
+            <p id="unique-portals"></p>
+
             <p>This page can display lots of banners from <a href="https://bannergress.com"
-                    target="_blank">Bannergress</a> on a single
-                map at the same time.</p>
+                target="_blank">Bannergress</a> on a single
+            map at the same time.</p>
+
             <p>It can also display all the banners from a place, such as a city or a country, by pasting the place's
                 "browse" URL below.</p>
             <p>Here are some suggestion:
@@ -94,18 +116,6 @@
                     data-id="recurse-aberdeen-595b,artistic-aberdeen-ca16,resistance-aberdeen-874e">some missions in
                     Aberdeen that make a good route</a>.
             </p>
-
-            <label for="banner-links">Paste your bannergress links here:</label>
-            <textarea id="banner-links" style="width: 100%; height: 200px;"></textarea>
-            <div>
-                <button id="show-banners">
-                    Show banners
-                    <div id="loading-spinner"></div>
-                </button>
-                <button id="clear-banners">Clear banners</button>
-            </div>
-
-            <p id="unique-portals"></p>
 
             <p>
                 This is not affiliated with Niantic, Inc., Ingress, or Bannergress. Raise issues on <a
