@@ -22,11 +22,15 @@ You can pass in the `banners` URL parameter to make the page prepoluate and load
 
 https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.com/banner/francesinha-8c71
 
+If you want to add multiple banners, use a newline that's url-encoded (`%0A`) as the delimiter and pass them all into the same `banners` parameter: 
+
+https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.com/banner/london-xm-research-7b96%0Ahttps://bannergress.com/banner/rotherhide-ingressfs-august-2024-5245%0Ahttps://bannergress.com/banner/gen-x-in-canada-water-8dfa
+
 ## Finding banners based on a place
 
 You can also pass in the `place` URL parameter. We will try to use the Bannergress API to find the next best place and fetch all banners. The output may vary as these places are not sorted. For parts of London, there may be two or more results, and calling it multiple times may return different things each time.
 
-file:///home/julien/code/private/banners/index.html?place=Ronnenberg
+https://simbabque.github.io/ingress-banner-mapper?place=Ronnenberg
 
 ## Disclaimer
 
