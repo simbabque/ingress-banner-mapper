@@ -315,7 +315,7 @@
                 let urlParam;
                 if (urlParam = getURLParameter('banners')) {
                     document.getElementById('banner-links').value = urlParam;
-                    showBanners();
+                    loadBannersFromLinks();
                 } else if (urlParam = getURLParameter('place')) {
                     fetch(`https://api.bannergress.com/places?used=true&collapsePlaces=true&limit=1&offset=0&query=${encodeURIComponent(urlParam)}`)
                         .then(response => response.json())
@@ -336,7 +336,7 @@
                             console.error('Failed to fetch place:', error);
                         });
 
-                    showBanners();
+                        loadBannersFromLinks();
                 }
             });
 
