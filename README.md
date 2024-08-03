@@ -22,7 +22,7 @@ You can pass in the `banners` URL parameter to make the page prepoluate and load
 
 https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.com/banner/francesinha-8c71
 
-If you want to add multiple banners, use a newline that's url-encoded (`%0A`) as the delimiter and pass them all into the same `banners` parameter: 
+If you want to add multiple banners, use url-encoded newlines (`%0A`) or spaces (`%20`) as the delimiter and pass them all into the same `banners` parameter: 
 
 https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.com/banner/london-xm-research-7b96%0Ahttps://bannergress.com/banner/rotherhide-ingressfs-august-2024-5245%0Ahttps://bannergress.com/banner/gen-x-in-canada-water-8dfa
 

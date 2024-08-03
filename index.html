@@ -226,7 +226,7 @@
                 document.getElementById('loading-spinner').style.display = 'inline-block';
 
                 const urlsToFetch = [];
-                for (const url of document.getElementById("banner-links").value.split('\n')) {
+                for (const url of document.getElementById("banner-links").value.split(/\s+/)) {
                     // ignore if it doesn't look like a bannergress.com url
                     if (!url.includes('bannergress.com')) {
                         continue;
