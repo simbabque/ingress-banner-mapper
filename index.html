@@ -41,11 +41,7 @@
             background-color: #f8f9fa;
             margin: 1em;
         }
-
-        .nav-area > p, .nav-area .full-size {
-            width: calc(100% - 2em);
-        }
-        
+       
         .nav-area button {
             margin-top: .5em;
         }
@@ -54,6 +50,10 @@
             margin-bottom: .5em;
         }
 
+        .bare-mode .nav-area {
+            display: none;
+        }
+        
         .leaflet-popup-content img {
             max-width: 300px;
         }
@@ -337,6 +337,15 @@
                         });
 
                         loadBannersFromLinks();
+                }
+
+                // hide the nav area if the bare URL parameter is set
+                const bare = getURLParameter('bare');
+                if (bare) {
+                    document.body.classList.add('bare-mode');
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 100);
                 }
             });
 

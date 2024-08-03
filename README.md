@@ -32,6 +32,13 @@ You can also pass in the `place` URL parameter. We will try to use the Bannergre
 
 https://simbabque.github.io/ingress-banner-mapper?place=Ronnenberg
 
+
+## Hiding the navigation pane
+
+You can hide the white bar with the navigation by appending the `bare=1` URL parameter. This is useful if you want to present a fixed view of a specific set of banners. Maybe you're providing a link for the banners in the area of a first First Saturday. Does not make very much sense without also providing a list of banners.
+
+https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.com/banner/london-xm-research-7b96%0Ahttps://bannergress.com/banner/rotherhide-ingressfs-august-2024-5245%0Ahttps://bannergress.com/banner/gen-x-in-canada-water-8dfa&bare=1
+
 ## Disclaimer
 
 This project is not affiliated with Niantic, Inc., Ingress, or Bannergress.
