@@ -233,9 +233,14 @@
                  */
                 shareBanners() {
                     const bannerIds = Object.keys(allBannersByBannerId);
+                    if (bannerIds.length === 0) {
+                        console.log('No banners to share');
+                        return;
+                    } 
+
                     const baseUrl = this.options.baseUrl;
                     const url = new URL(baseUrl);
-                    url.searchParams.set('banners', bannerIds.map(id => `https://bannergress.com/banner/${id}`).join(' '));
+                    url.searchParams.set('banners', btoa(bannerIds.map(id => `https://bannergress.com/banner/${id}`).join(' ')));
                     navigator.clipboard.writeText(url.href)
                         .then(() => {
                             console.log('Shareable link copied to clipboard:', url.href);
@@ -388,9 +393,16 @@
             document.addEventListener("DOMContentLoaded", function () {
                 let urlParam;
                 if (urlParam = getURLParameter('banners')) {
-                    document.getElementById('banner-links').value = urlParam;
+                    let decodedParam;
+                    try {
+                        decodedParam = atob(urlParam);
+                    } catch (error) {
+                        decodedParam = urlParam;
+                    }
+                    document.getElementById('banner-links').value = decodedParam;
                     loadBannersFromLinks();
-                } else if (urlParam = getURLParameter('place')) {
+                }
+                else if (urlParam = getURLParameter('place')) {
                     fetch(`https://api.bannergress.com/places?used=true&collapsePlaces=true&limit=1&offset=0&query=${encodeURIComponent(urlParam)}`)
                         .then(response => response.json())
                         .then(data => {
