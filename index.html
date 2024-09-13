@@ -17,11 +17,12 @@
             overflow: hidden;
             font-family: sans-serif;
         }
-        
+
         p {
             padding: 0;
             margin: 0;
         }
+
         .flex-container {
             display: flex;
             flex-direction: column;
@@ -41,19 +42,19 @@
             background-color: #f8f9fa;
             margin: 1em;
         }
-       
+
         .nav-area button {
             margin-top: .5em;
         }
 
-        .nav-area > p {
+        .nav-area>p {
             margin-bottom: .5em;
         }
 
         .bare-mode .nav-area {
             display: none;
         }
-        
+
         .leaflet-popup-content img {
             max-width: 300px;
         }
@@ -102,8 +103,8 @@
             <p id="unique-portals"></p>
 
             <p>This page can display lots of banners from <a href="https://bannergress.com"
-                target="_blank">Bannergress</a> on a single
-            map at the same time.</p>
+                    target="_blank">Bannergress</a> on a single
+                map at the same time.</p>
 
             <p>It can also display all the banners from a place, such as a city or a country, by pasting the place's
                 "browse" URL below.</p>
@@ -179,6 +180,71 @@
                 }
             }
 
+            /**
+             * Represents a custom Leaflet control to generate a shareable link for all banners
+             * currently visible on the map.
+             * 
+             * @class ShareBannersControl
+             * @extends L.Control
+             */
+            class ShareBannersControl extends L.Control {
+                /**
+                 * Creates an instance of ShareBannersControl.
+                 * @param {Object} [options={}] - The options for the control.
+                 * @param {string} options.baseUrl - The base URL of the current page.
+                 */
+                constructor(options = {}) {
+                    super(options);
+                    this.options = options;
+                }
+
+                /**
+                 * Adds the control to the map.
+                 * @param {L.Map} map - The Leaflet map instance.
+                 * @returns {HTMLElement} The container element of the control.
+                 */
+                onAdd(map) {
+                    const container = L.DomUtil.create('div', 'share-banners-control leaflet-bar leaflet-control');
+                    this._container = container;
+                    this._map = map;
+                    this._link = L.DomUtil.create('a', 'leaflet-bar-part leaflet-bar-part-single', container);
+                    this._link.href = '#';
+                    this._link.title = 'Share visible banners';
+                    this._link.id = 'share-banners';
+                    this._link.innerHTML = '🔗';
+                    this._link.role = 'button';
+                    L.DomEvent.on(
+                        this._link,
+                        "click",
+                        function (ev) {
+                            L.DomEvent.stopPropagation(ev);
+                            L.DomEvent.preventDefault(ev);
+                            this.shareBanners();
+                        },
+                        this
+                    ).on(this._link, "dblclick", L.DomEvent.stopPropagation);
+
+                    return container;
+                }
+
+                /**
+                 * Generates a shareable link for all visible banners and copies it to the clipboard.
+                 */
+                shareBanners() {
+                    const bannerIds = Object.keys(allBannersByBannerId);
+                    const baseUrl = this.options.baseUrl;
+                    const url = new URL(baseUrl);
+                    url.searchParams.set('banners', bannerIds.map(id => `https://bannergress.com/banner/${id}`).join(' '));
+                    navigator.clipboard.writeText(url.href)
+                        .then(() => {
+                            console.log('Shareable link copied to clipboard:', url.href);
+                        })
+                        .catch(error => {
+                            console.error('Failed to copy shareable link to clipboard:', error);
+                        });
+                }
+            }
+
             // Initialise the map - we start in London
             let map = L.map('map').setView([51.505, -0.09], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -213,6 +279,13 @@
             });
             fetchBannersControl.addTo(map);
 
+            // Button to share visible banners
+            const shareBannersControl = new ShareBannersControl({
+                position: 'topleft',
+                baseUrl: window.location.href.split('?')[0]
+            });
+            shareBannersControl.addTo(map);
+
             // Stores the count of unique lat/long pairs to show UPV
             let uniqueLatLongPairs = {};
 
@@ -240,7 +313,7 @@
                         urlsToFetch.push(url);
                     }
                 }
-                 showBanners(urlsToFetch);
+                showBanners(urlsToFetch);
             }
             document.getElementById("show-banners").addEventListener("click", loadBannersFromLinks);
 
@@ -336,7 +409,7 @@
                             console.error('Failed to fetch place:', error);
                         });
 
-                        loadBannersFromLinks();
+                    loadBannersFromLinks();
                 }
 
                 // hide the nav area if the bare URL parameter is set
@@ -387,9 +460,9 @@
                     return Promise.resolve();
                 } else {
                     return fetch(url)
-                    .then(response => response.json())
-                    .then(data => allBanners.addLayer(drawBanner(data, invocationCount++)))
-                    .catch(error => console.error('Error fetching JSON:', error));
+                        .then(response => response.json())
+                        .then(data => allBanners.addLayer(drawBanner(data, invocationCount++)))
+                        .catch(error => console.error('Error fetching JSON:', error));
                 }
             }
 

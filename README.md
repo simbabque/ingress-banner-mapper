@@ -32,6 +32,11 @@ You can also pass in the `place` URL parameter. We will try to use the Bannergre
 
 https://simbabque.github.io/ingress-banner-mapper?place=Ronnenberg
 
+## Sharing visible banners
+
+You can use the '🔗' button on the map to copy a sharable URL of the current set of banners to the clipboard. This will include
+everything on the map, but not where your map is scrolled to. It does not take the content of the text box at the bottom of the
+screen into account. It is intended to be used to store or share a curated list of banners.
 
 ## Hiding the navigation pane
 
