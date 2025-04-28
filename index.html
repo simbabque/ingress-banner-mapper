@@ -236,11 +236,11 @@
                     if (bannerIds.length === 0) {
                         console.log('No banners to share');
                         return;
-                    } 
+                    }
 
                     const baseUrl = this.options.baseUrl;
                     const url = new URL(baseUrl);
-                    url.searchParams.set('banners', btoa(bannerIds.map(id => `https://bannergress.com/banner/${id}`).join(' ')));
+                    url.searchParams.set('banners', btoa(bannerIds.map(id => `https://bannergress.com/banner/${encodeURIComponent(id)}`).join(' ')));
                     navigator.clipboard.writeText(url.href)
                         .then(() => {
                             console.log('Shareable link copied to clipboard:', url.href);
@@ -336,9 +336,9 @@
                 // decrease the opacity of all other banners
                 Object.values(allBannersByBannerId).forEach(banner => {
                     const opacity = banner.polyline === activePolyline ? fullOpacity : lowOpacity;
-                    banner.polyline.setStyle({ opacity: opacity, fillOpacity: opacity });
+                    banner.polyline.setStyle({opacity: opacity, fillOpacity: opacity});
                     banner.polyline.associatedLayers.forEach(layer => {
-                        layer.setStyle({ opacity: opacity, fillOpacity: opacity });
+                        layer.setStyle({opacity: opacity, fillOpacity: opacity});
                     });
 
                     // fiddle with the arrow-head opacity in the actual polylineDecorator
@@ -355,9 +355,9 @@
 
                 // reset the opacity of all banners
                 Object.values(allBannersByBannerId).forEach(banner => {
-                    banner.polyline.setStyle({ opacity: regularOpacity, fillOpacity: fullOpacity });
+                    banner.polyline.setStyle({opacity: regularOpacity, fillOpacity: fullOpacity});
                     banner.polyline.associatedLayers.forEach(layer => {
-                        layer.setStyle({ opacity: regularOpacity, fillOpacity: fullOpacity });
+                        layer.setStyle({opacity: regularOpacity, fillOpacity: fullOpacity});
                     });
 
                     // reset the arrow-head opacity in the actual polylineDecorator
@@ -544,7 +544,7 @@
                     Object.values(bannerData.missions).forEach(mission => {
                         mission.steps.forEach(step => {
                             if (step.poi && step.poi.type !== "unavailable") {
-                                const { latitude, longitude } = step.poi;
+                                const {latitude, longitude} = step.poi;
                                 latLongPairs.push([latitude, longitude]);
 
                                 // Increment the count for the lat/long pair that's a portal
@@ -561,14 +561,14 @@
                 };
 
                 // draw a filled circle at the start and end of the banner
-                const endMarker = L.shapeMarker(latLongPairs[latLongPairs.length - 1], { shape: 'diamond', color: 'black', opacity: 0.4, fillColor: colour, fillOpacity: fullOpacity }).addTo(allBanners);
-                const startMarker = L.circleMarker(latLongPairs[0], { color: 'black', opacity: 0.4, fillColor: colour, fillOpacity: fullOpacity }).addTo(allBanners);
-                const polyline = L.polyline(latLongPairs, { color: colour, opacity: regularOpacity }).addTo(allBanners);
+                const endMarker = L.shapeMarker(latLongPairs[latLongPairs.length - 1], {shape: 'diamond', color: 'black', opacity: 0.4, fillColor: colour, fillOpacity: fullOpacity}).addTo(allBanners);
+                const startMarker = L.circleMarker(latLongPairs[0], {color: 'black', opacity: 0.4, fillColor: colour, fillOpacity: fullOpacity}).addTo(allBanners);
+                const polyline = L.polyline(latLongPairs, {color: colour, opacity: regularOpacity}).addTo(allBanners);
                 const arrowSymbol = L.polylineDecorator(polyline, {
                     patterns: [
                         {
                             offset: '10', repeat: '50', symbol: L.Symbol.arrowHead({
-                                pixelSize: 10, polygon: false, pathOptions: { color: colour, opacity: regularOpacity }
+                                pixelSize: 10, polygon: false, pathOptions: {color: colour, opacity: regularOpacity}
                             })
                         }
                     ]
@@ -596,12 +596,12 @@
                         if (isPopupOpen) return;
                         allBanners.eachLayer(layer => {
                             if (layer !== polyline && layer !== arrowSymbol) {
-                                layer.setStyle({ opacity: lowOpacity, fillOpacity: lowOpacity });
+                                layer.setStyle({opacity: lowOpacity, fillOpacity: lowOpacity});
                             } else {
-                                polyline.setStyle({ opacity: fullOpacity });
-                                arrowSymbol.setStyle({ opacity: fullOpacity });
-                                startMarker.setStyle({ opacity: fullOpacity, fillOpacity: fullOpacity });
-                                endMarker.setStyle({ opacity: fullOpacity, fillOpacity: fullOpacity });
+                                polyline.setStyle({opacity: fullOpacity});
+                                arrowSymbol.setStyle({opacity: fullOpacity});
+                                startMarker.setStyle({opacity: fullOpacity, fillOpacity: fullOpacity});
+                                endMarker.setStyle({opacity: fullOpacity, fillOpacity: fullOpacity});
                             }
                         });
                     });
@@ -609,7 +609,7 @@
                     element.on('mouseout', () => {
                         if (isPopupOpen) return;
                         allBanners.eachLayer(layer => {
-                            layer.setStyle({ opacity: regularOpacity, fillOpacity: fullOpacity });
+                            layer.setStyle({opacity: regularOpacity, fillOpacity: fullOpacity});
                         });
                     });
                 });
@@ -792,7 +792,7 @@
                     return;
                 }
 
-                const latLongPairs = banner.polyline.getLatLngs().map(latlng => ({ latitude: latlng.lat, longitude: latlng.lng }));
+                const latLongPairs = banner.polyline.getLatLngs().map(latlng => ({latitude: latlng.lat, longitude: latlng.lng}));
 
                 const client = new OpenElevationClient();
                 const results = await client.lookup(latLongPairs);
@@ -840,7 +840,7 @@
                             'Accept': 'application/json',
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ locations })
+                        body: JSON.stringify({locations})
                     })
                         .then(response => response.json())
                         .then(data => data.results);
