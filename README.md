@@ -52,7 +52,7 @@ https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.c
 
 ## Disclaimer
 
-This project is not affiliated with Niantic, Inc., Ingress, or Bannergress.
+This project is not affiliated with Niantic Spatial, Inc., Ingress, or Bannergress.
 
 ## Issues
 
