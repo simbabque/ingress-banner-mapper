@@ -251,6 +251,135 @@
                 }
             }
 
+            /** 
+             * Represents a custom leaflet control to download a JSON file of all visible banners as drawtools polylines.
+             * 
+             * @class ExportBannersDrawtoolControl
+             * @extends L.Control
+             * 
+            */
+
+            class ExportBannersDrawtoolControl extends L.Control {
+                /**
+                 * Creates an instance of ExportBannersDrawtoolControl.
+                 * @param {Object} [options={}] - The options for the control.
+                 */
+                constructor(options = {}) {
+                    super(options);
+                    this.options = options;
+                }
+
+                /**
+                 * Adds the control to the map.
+                 * @param {L.Map} map - The Leaflet map instance.
+                 * @returns {HTMLElement} The container element of the control.
+                 */
+                onAdd(map) {
+                    const container = L.DomUtil.create('div', 'export-drawtool-control leaflet-bar leaflet-control');
+                    this._container = container;
+                    this._map = map;
+                    this._link = L.DomUtil.create('a', 'leaflet-bar-part leaflet-bar-part-single', container);
+                    this._link.href = '#';
+                    this._link.title = 'Export banners as Drawtools JSON';
+                    this._link.id = 'export-drawtool';
+                    this._link.innerHTML = 'DT';
+                    this._link.role = 'button';
+                    L.DomEvent.on(
+                        this._link,
+                        "click",
+                        function (ev) {
+                            L.DomEvent.stopPropagation(ev);
+                            L.DomEvent.preventDefault(ev);
+                            this.exportDrawtool();
+                        },
+                        this
+                    ).on(this._link, "dblclick", L.DomEvent.stopPropagation);
+
+                    return container;
+                }
+
+                /**
+                 * Exports banners as Drawtools JSON format.
+                 */
+                async exportDrawtool() {
+                    const drawtools = {};
+                    for (const [bannerId, bannerObj] of Object.entries(allBannersByBannerId)) {
+                        const latLngs = [];
+                        
+                        // Iterate through missions to collect lat/lng coordinates
+                        Object.values(bannerObj.bannerData.missions).forEach(mission => {
+                            mission.steps.forEach(step => {
+                                if (step.poi && step.poi.latitude && step.poi.longitude) {
+                                    latLngs.push({
+                                        lat: step.poi.latitude,
+                                        lng: step.poi.longitude
+                                    });
+                                }
+                            });
+                        });
+
+                        drawtools[bannerId] = {
+                            type: "polyline",
+                            latLngs: latLngs,
+                            color: bannerObj.polyline.options.color
+                        };
+                    }
+
+                    // Generate a unique filename with timestamp and location
+                    const filename = await this.generateFilename();
+
+                    // Create and download the JSON file
+                    const dataStr = JSON.stringify(drawtools, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                }
+
+                /**
+                 * Generates a unique filename with timestamp and location.
+                 * @returns {Promise<string>} The generated filename.
+                 */
+                async generateFilename() {
+                    // Get current timestamp
+                    const now = new Date();
+                    const timestamp = now.toISOString().slice(0, 19).replace(/[T:]/g, '-');
+                    
+                    // Get center of current map view
+                    const center = this._map.getCenter();
+                    
+                    try {
+                        // Use Nominatim (OpenStreetMap) reverse geocoding
+                        const response = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?lat=${center.lat}&lon=${center.lng}&format=json&addressdetails=1`
+                        );
+                        const data = await response.json();
+                        
+                        // Extract city/town/village name, fallback to display_name
+                        let locationName = data.address?.city || 
+                                         data.address?.town || 
+                                         data.address?.village || 
+                                         data.address?.municipality ||
+                                         data.display_name?.split(',')[0] ||
+                                         'Unknown';
+                        
+                        // Clean location name for filename (remove special characters)
+                        locationName = locationName.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
+                        
+                        return `banners_${locationName}_${timestamp}.json`;
+                    } catch (error) {
+                        console.warn('Failed to get location name, using timestamp only:', error);
+                        return `banners_${timestamp}.json`;
+                    }
+                }
+
+            }
+
+
+
             // Initialise the map - we start in London
             let map = L.map('map').setView([51.505, -0.09], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -291,6 +420,12 @@
                 baseUrl: window.location.href.split('?')[0]
             });
             shareBannersControl.addTo(map);
+
+            // Button to export visible banners as Drawtools JSON
+            const exportDrawtoolControl = new ExportBannersDrawtoolControl({
+                position: 'topleft',
+            });
+            exportDrawtoolControl.addTo(map);
 
             // Stores the count of unique lat/long pairs to show UPV
             let uniqueLatLongPairs = {};

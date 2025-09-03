@@ -38,6 +38,12 @@ You can use the '🔗' button on the map to copy a sharable URL of the current s
 everything on the map, but not where your map is scrolled to. It does not take the content of the text box at the bottom of the
 screen into account. It is intended to be used to store or share a curated list of banners.
 
+## Exporting banners as Drawtools JSON
+
+You can use the 'DT' button on the map to export all visible banners as a JSON file compatible with Drawtools. This creates a downloadable file containing all banner routes as polylines with their coordinates and colors. The exported file will be automatically named with the current location and timestamp, for example: `banners_London_2025-09-03-14-30-15.json`.
+
+You can then use this to import the routes into IITC with Drawtools. It is useful for planning new routes while avoiding existing ones.
+
 ## Hiding the navigation pane
 
 You can hide the white bar with the navigation by appending the `bare=1` URL parameter. This is useful if you want to present a fixed view of a specific set of banners. Maybe you're providing a link for the banners in the area of a first First Saturday. Does not make very much sense without also providing a list of banners.
