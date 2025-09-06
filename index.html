@@ -378,6 +378,92 @@
 
             }
 
+            /** 
+             * Represents a custom leaflet control to toggle the navigation panel visibility.
+             * 
+             * @class ToggleNavigationControl
+             * @extends L.Control
+             */
+            class ToggleNavigationControl extends L.Control {
+                /**
+                 * Creates an instance of ToggleNavigationControl.
+                 * @param {Object} [options={}] - The options for the control.
+                 */
+                constructor(options = {}) {
+                    super(options);
+                    this.options = options;
+                    this.isNavVisible = true; // Track navigation visibility state
+                }
+
+                /**
+                 * Adds the control to the map.
+                 * @param {L.Map} map - The Leaflet map instance.
+                 * @returns {HTMLElement} The container element of the control.
+                 */
+                onAdd(map) {
+                    const container = L.DomUtil.create('div', 'toggle-nav-control leaflet-bar leaflet-control');
+                    this._container = container;
+                    this._map = map;
+                    this._link = L.DomUtil.create('a', 'leaflet-bar-part leaflet-bar-part-single', container);
+                    this._link.href = '#';
+                    this._link.id = 'toggle-nav';
+                    this._link.innerHTML = '☰'; // Hamburger menu icon
+                    this._link.role = 'button';
+                    
+                    // Check if navigation is currently hidden (bare mode)
+                    this.isNavVisible = !document.body.classList.contains('bare-mode');
+                    this.updateButtonState();
+                    
+                    L.DomEvent.on(
+                        this._link,
+                        "click",
+                        function (ev) {
+                            L.DomEvent.stopPropagation(ev);
+                            L.DomEvent.preventDefault(ev);
+                            this.toggleNavigation();
+                        },
+                        this
+                    ).on(this._link, "dblclick", L.DomEvent.stopPropagation);
+
+                    return container;
+                }
+
+                /**
+                 * Updates the button appearance based on current state.
+                 */
+                updateButtonState() {
+                    if (this.isNavVisible) {
+                        this._link.title = 'Hide navigation panel';
+                    } else {
+                        this._link.title = 'Show navigation panel';
+                    }
+                }
+
+                /**
+                 * Toggles the visibility of the navigation panel.
+                 */
+                toggleNavigation() {
+                    const body = document.body;
+                    
+                    if (this.isNavVisible) {
+                        // Hide navigation
+                        body.classList.add('bare-mode');
+                        this.isNavVisible = false;
+                    } else {
+                        // Show navigation
+                        body.classList.remove('bare-mode');
+                        this.isNavVisible = true;
+                    }
+                    
+                    this.updateButtonState();
+                    
+                    // Invalidate map size after toggling to ensure proper rendering
+                    setTimeout(() => {
+                        this._map.invalidateSize();
+                    }, 100);
+                }
+            }
+
 
 
             // Initialise the map - we start in London
@@ -426,6 +512,8 @@
                 position: 'topleft',
             });
             exportDrawtoolControl.addTo(map);
+
+            // Note: Toggle navigation control is added after DOMContentLoaded to ensure bare parameter is processed first
 
             // Stores the count of unique lat/long pairs to show UPV
             let uniqueLatLongPairs = {};
@@ -568,6 +656,12 @@
                         map.invalidateSize();
                     }, 100);
                 }
+
+                // Add toggle navigation control after processing bare parameter
+                const toggleNavControl = new ToggleNavigationControl({
+                    position: 'topright',
+                });
+                toggleNavControl.addTo(map);
             });
 
             // Function to show banners on the map

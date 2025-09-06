@@ -44,9 +44,15 @@ You can use the 'DT' button on the map to export all visible banners as a JSON f
 
 You can then use this to import the routes into IITC with Drawtools. It is useful for planning new routes while avoiding existing ones.
 
-## Hiding the navigation pane
+## Hiding the navigation panel
 
-You can hide the white bar with the navigation by appending the `bare=1` URL parameter. This is useful if you want to present a fixed view of a specific set of banners. Maybe you're providing a link for the banners in the area of a first First Saturday. Does not make very much sense without also providing a list of banners.
+You can use the '☰' (hamburger menu) button in the top-right corner of the map to show or hide the navigation panel. This is useful when you want to:
+
+- Get a full-screen view of the map for presentations or screenshots
+- Maximize map space when viewing many banners
+- Quickly switch between navigation and map-only views
+
+You can also hide the navigation panel permanently by appending the `bare=1` URL parameter. This is useful if you want to present a fixed view of a specific set of banners, such as providing a link for the banners in the area of a First Saturday event:
 
 https://simbabque.github.io/ingress-banner-mapper/?banners=https://bannergress.com/banner/london-xm-research-7b96%0Ahttps://bannergress.com/banner/rotherhide-ingressfs-august-2024-5245%0Ahttps://bannergress.com/banner/gen-x-in-canada-water-8dfa&bare=1
 
