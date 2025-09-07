@@ -83,6 +83,69 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* Export dialog styles */
+        .banner-url-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+        }
+
+        .banner-url-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 4px;
+            font-family: sans-serif;
+        }
+
+        .banner-url-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        .banner-url-link:hover {
+            text-decoration: underline;
+        }
+
+        .no-banners-message {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Export dialog container styles */
+        .export-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 300px;
+            display: none;
+            font-family: sans-serif;
+        }
+
+        .export-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
     </style>
 </head>
 
@@ -181,22 +244,21 @@
                 }
             }
 
-            /**
-             * Represents a custom Leaflet control to generate a shareable link for all banners
-             * currently visible on the map.
+            /** 
+             * Represents a custom leaflet control for unified export functionality.
              * 
-             * @class ShareBannersControl
+             * @class UnifiedExportControl
              * @extends L.Control
              */
-            class ShareBannersControl extends L.Control {
+            class UnifiedExportControl extends L.Control {
                 /**
-                 * Creates an instance of ShareBannersControl.
+                 * Creates an instance of UnifiedExportControl.
                  * @param {Object} [options={}] - The options for the control.
-                 * @param {string} options.baseUrl - The base URL of the current page.
                  */
                 constructor(options = {}) {
                     super(options);
                     this.options = options;
+                    this.isDialogOpen = false;
                 }
 
                 /**
@@ -205,22 +267,26 @@
                  * @returns {HTMLElement} The container element of the control.
                  */
                 onAdd(map) {
-                    const container = L.DomUtil.create('div', 'share-banners-control leaflet-bar leaflet-control');
+                    const container = L.DomUtil.create('div', 'unified-export-control leaflet-bar leaflet-control');
                     this._container = container;
                     this._map = map;
                     this._link = L.DomUtil.create('a', 'leaflet-bar-part leaflet-bar-part-single', container);
                     this._link.href = '#';
-                    this._link.title = 'Share visible banners';
-                    this._link.id = 'share-banners';
-                    this._link.innerHTML = '🔗';
+                    this._link.title = 'Export options';
+                    this._link.id = 'unified-export';
+                    this._link.innerHTML = '📤'; // Export icon
                     this._link.role = 'button';
+                    
+                    // Create the dialog
+                    this.createDialog();
+                    
                     L.DomEvent.on(
                         this._link,
                         "click",
                         function (ev) {
                             L.DomEvent.stopPropagation(ev);
                             L.DomEvent.preventDefault(ev);
-                            this.shareBanners();
+                            this.toggleDialog();
                         },
                         this
                     ).on(this._link, "dblclick", L.DomEvent.stopPropagation);
@@ -229,79 +295,147 @@
                 }
 
                 /**
-                 * Generates a shareable link for all visible banners and copies it to the clipboard.
+                 * Creates the export dialog.
                  */
-                shareBanners() {
+                createDialog() {
+                    // Create dialog container
+                    this._dialog = L.DomUtil.create('div', 'export-dialog');
+
+                    // Create dialog content
+                    this._dialog.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #333;">Export Options</h3>
+                            <button id="close-export-dialog" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #666;">&times;</button>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button id="export-share-link" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer;">
+                                🔗 Copy shareable link
+                            </button>
+                            <button id="export-drawtools" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer;">
+                                📁 Download Drawtools JSON
+                            </button>
+                            <button id="show-banner-urls" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer;">
+                                ▶ Show all banner URLs
+                            </button>
+                        </div>
+                        <div id="banner-urls-container" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <h4 style="margin: 0; color: #333;">Banner URLs</h4>
+                                <div style="display: flex; gap: 8px;">
+                                    <button id="copy-all-urls" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer; font-size: 12px;">
+                                        📋 Copy All
+                                    </button>
+                                    <button id="open-all-urls" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer; font-size: 12px;">
+                                        🚀 Open All
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="banner-urls-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px; background: #f9f9f9; font-family: monospace; font-size: 12px; line-height: 1.4;">
+                            </div>
+                        </div>
+                    `;
+
+                    // Create overlay
+                    this._overlay = L.DomUtil.create('div', 'export-overlay');
+
+                    // Add to document
+                    document.body.appendChild(this._overlay);
+                    document.body.appendChild(this._dialog);
+
+                    // Add event listeners
+                    this.setupDialogEvents();
+                }
+
+                /**
+                 * Sets up event listeners for the dialog.
+                 */
+                setupDialogEvents() {
+                    // Close dialog events
+                    const closeBtn = this._dialog.querySelector('#close-export-dialog');
+                    L.DomEvent.on(closeBtn, 'click', this.closeDialog, this);
+                    L.DomEvent.on(this._overlay, 'click', this.closeDialog, this);
+
+                    // Export function events
+                    const shareLinkBtn = this._dialog.querySelector('#export-share-link');
+                    const drawtoolsBtn = this._dialog.querySelector('#export-drawtools');
+                    const showUrlsBtn = this._dialog.querySelector('#show-banner-urls');
+                    const copyAllBtn = this._dialog.querySelector('#copy-all-urls');
+                    const openAllBtn = this._dialog.querySelector('#open-all-urls');
+
+                    L.DomEvent.on(shareLinkBtn, 'click', this.exportShareLink, this);
+                    L.DomEvent.on(drawtoolsBtn, 'click', this.exportDrawtools, this);
+                    L.DomEvent.on(showUrlsBtn, 'click', this.toggleBannerUrls, this);
+                    L.DomEvent.on(copyAllBtn, 'click', this.copyAllUrls, this);
+                    L.DomEvent.on(openAllBtn, 'click', this.openAllUrls, this);
+
+                    // Prevent clicks inside dialog from closing it
+                    L.DomEvent.on(this._dialog, 'click', L.DomEvent.stopPropagation);
+                }
+
+                /**
+                 * Toggles the dialog visibility.
+                 */
+                toggleDialog() {
+                    if (this.isDialogOpen) {
+                        this.closeDialog();
+                    } else {
+                        this.openDialog();
+                    }
+                }
+
+                /**
+                 * Opens the export dialog.
+                 */
+                openDialog() {
+                    this._overlay.style.display = 'block';
+                    this._dialog.style.display = 'block';
+                    this.isDialogOpen = true;
+                }
+
+                /**
+                 * Closes the export dialog.
+                 */
+                closeDialog() {
+                    this._overlay.style.display = 'none';
+                    this._dialog.style.display = 'none';
+                    this.isDialogOpen = false;
+                    
+                    // Reset the banner URLs section to closed state
+                    const container = this._dialog.querySelector('#banner-urls-container');
+                    const button = this._dialog.querySelector('#show-banner-urls');
+                    container.style.display = 'none';
+                    button.innerHTML = '▶ Show all banner URLs';
+                }
+
+                /**
+                 * Exports a shareable link (moved from ShareBannersControl).
+                 */
+                exportShareLink() {
                     const bannerIds = Object.keys(allBannersByBannerId);
                     if (bannerIds.length === 0) {
-                        console.log('No banners to share');
+                        alert('No banners to share');
                         return;
-                    } 
+                    }
 
-                    const baseUrl = this.options.baseUrl;
+                    const baseUrl = window.location.href.split('?')[0];
                     const url = new URL(baseUrl);
                     url.searchParams.set('banners', btoa(bannerIds.map(id => `https://bannergress.com/banner/${id}`).join(' ')));
+                    
                     navigator.clipboard.writeText(url.href)
                         .then(() => {
-                            console.log('Shareable link copied to clipboard:', url.href);
+                            alert('Shareable link copied to clipboard!');
+                            this.closeDialog();
                         })
                         .catch(error => {
                             console.error('Failed to copy shareable link to clipboard:', error);
+                            alert('Failed to copy link to clipboard');
                         });
                 }
-            }
-
-            /** 
-             * Represents a custom leaflet control to download a JSON file of all visible banners as drawtools polylines.
-             * 
-             * @class ExportBannersDrawtoolControl
-             * @extends L.Control
-             * 
-            */
-
-            class ExportBannersDrawtoolControl extends L.Control {
-                /**
-                 * Creates an instance of ExportBannersDrawtoolControl.
-                 * @param {Object} [options={}] - The options for the control.
-                 */
-                constructor(options = {}) {
-                    super(options);
-                    this.options = options;
-                }
 
                 /**
-                 * Adds the control to the map.
-                 * @param {L.Map} map - The Leaflet map instance.
-                 * @returns {HTMLElement} The container element of the control.
+                 * Exports Drawtools JSON (moved from ExportBannersDrawtoolControl).
                  */
-                onAdd(map) {
-                    const container = L.DomUtil.create('div', 'export-drawtool-control leaflet-bar leaflet-control');
-                    this._container = container;
-                    this._map = map;
-                    this._link = L.DomUtil.create('a', 'leaflet-bar-part leaflet-bar-part-single', container);
-                    this._link.href = '#';
-                    this._link.title = 'Export banners as Drawtools JSON';
-                    this._link.id = 'export-drawtool';
-                    this._link.innerHTML = 'DT';
-                    this._link.role = 'button';
-                    L.DomEvent.on(
-                        this._link,
-                        "click",
-                        function (ev) {
-                            L.DomEvent.stopPropagation(ev);
-                            L.DomEvent.preventDefault(ev);
-                            this.exportDrawtool();
-                        },
-                        this
-                    ).on(this._link, "dblclick", L.DomEvent.stopPropagation);
-
-                    return container;
-                }
-
-                /**
-                 * Exports banners as Drawtools JSON format.
-                 */
-                async exportDrawtool() {
+                async exportDrawtools() {
                     const drawtools = {};
                     for (const [bannerId, bannerObj] of Object.entries(allBannersByBannerId)) {
                         const latLngs = [];
@@ -337,6 +471,8 @@
                     link.download = filename;
                     link.click();
                     URL.revokeObjectURL(url);
+                    
+                    this.closeDialog();
                 }
 
                 /**
@@ -376,6 +512,105 @@
                     }
                 }
 
+                /**
+                 * Toggles the visibility of the banner URLs list.
+                 */
+                toggleBannerUrls() {
+                    const container = this._dialog.querySelector('#banner-urls-container');
+                    const button = this._dialog.querySelector('#show-banner-urls');
+                    
+                    if (container.style.display === 'none') {
+                        // Show the URLs
+                        this.populateBannerUrls();
+                        container.style.display = 'block';
+                        button.innerHTML = '▼ Hide banner URLs';
+                    } else {
+                        // Hide the URLs
+                        container.style.display = 'none';
+                        button.innerHTML = '▶ Show all banner URLs';
+                    }
+                }
+
+                /**
+                 * Populates the banner URLs list with all visible banners.
+                 */
+                populateBannerUrls() {
+                    const urlsList = this._dialog.querySelector('#banner-urls-list');
+                    const bannerIds = Object.keys(allBannersByBannerId);
+                    
+                    if (bannerIds.length === 0) {
+                        urlsList.innerHTML = '<div class="no-banners-message">No banners currently visible</div>';
+                        return;
+                    }
+
+                    // Create URLs for all visible banners
+                    const urls = bannerIds.map(id => {
+                        const bannerData = allBannersByBannerId[id].bannerData;
+                        const url = `https://bannergress.com/banner/${id}`;
+                        return `<div class="banner-url-item">
+                            <div class="banner-url-title">${bannerData.title}</div>
+                            <a href="${url}" target="_blank" class="banner-url-link">${url}</a>
+                        </div>`;
+                    });
+
+                    urlsList.innerHTML = urls.join('');
+                }
+
+                /**
+                 * Copies all banner URLs to clipboard.
+                 */
+                copyAllUrls() {
+                    const bannerIds = Object.keys(allBannersByBannerId);
+                    
+                    if (bannerIds.length === 0) {
+                        alert('No banners to copy');
+                        return;
+                    }
+
+                    const urls = bannerIds.map(id => `https://bannergress.com/banner/${id}`);
+                    const urlsText = urls.join('\n');
+                    
+                    navigator.clipboard.writeText(urlsText)
+                        .then(() => {
+                            const button = this._dialog.querySelector('#copy-all-urls');
+                            const originalText = button.innerHTML;
+                            button.innerHTML = '✅ Copied!';
+                            setTimeout(() => {
+                                button.innerHTML = originalText;
+                            }, 2000);
+                        })
+                        .catch(error => {
+                            console.error('Failed to copy URLs to clipboard:', error);
+                            alert('Failed to copy URLs to clipboard');
+                        });
+                }
+
+                /**
+                 * Opens all banner URLs in new tabs.
+                 */
+                openAllUrls() {
+                    const bannerIds = Object.keys(allBannersByBannerId);
+                    
+                    if (bannerIds.length === 0) {
+                        alert('No banners to open');
+                        return;
+                    }
+
+                    const urls = bannerIds.map(id => `https://bannergress.com/banner/${id}`);
+                    
+                    // Open each URL in a new tab
+                    urls.forEach(url => {
+                        window.open(url, '_blank');
+                    });
+
+                    // Update button temporarily to show success
+                    const button = this._dialog.querySelector('#open-all-urls');
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '✅ Opened!';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                    }, 2000);
+                }
             }
 
             /** 
@@ -500,18 +735,11 @@
             });
             fetchBannersControl.addTo(map);
 
-            // Button to share visible banners
-            const shareBannersControl = new ShareBannersControl({
-                position: 'topleft',
-                baseUrl: window.location.href.split('?')[0]
-            });
-            shareBannersControl.addTo(map);
-
-            // Button to export visible banners as Drawtools JSON
-            const exportDrawtoolControl = new ExportBannersDrawtoolControl({
+            // Unified export control
+            const unifiedExportControl = new UnifiedExportControl({
                 position: 'topleft',
             });
-            exportDrawtoolControl.addTo(map);
+            unifiedExportControl.addTo(map);
 
             // Note: Toggle navigation control is added after DOMContentLoaded to ensure bare parameter is processed first
 

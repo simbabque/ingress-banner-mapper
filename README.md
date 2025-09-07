@@ -6,7 +6,9 @@ This project displays banners from [Bannergress](https://bannergress.com) on a m
 
 - Display multiple banners on a single map.
 - Display all banners from a place, such as a city or a country, by pasting the place's "browse" URL.
-- Suggested places: London, Lisbon, Porto, Hannover.
+- Display an elevation graph for a banner to check whether you need to go up and down any hills.
+- Share a set of banners with others or store it for use on your phone later.
+- Export Drawtools JSON files of banners for easy visualisation of existing banners while planning new routes with UMM.
 
 ## Usage
 
@@ -32,17 +34,31 @@ You can also pass in the `place` URL parameter. We will try to use the Bannergre
 
 https://simbabque.github.io/ingress-banner-mapper?place=Ronnenberg
 
-## Sharing visible banners
+## Different ways of sharing what you've done
 
-You can use the '🔗' button on the map to copy a sharable URL of the current set of banners to the clipboard. This will include
+There are various different options for sharing and saving the banners you've curated. Use the '📤' button on the top right side of the map
+to open the Export dialog. This will open a dialog, and you can then choose from the following.
+
+### Copy sharable link
+
+This creates a sharable URL of the current set of banners to the clipboard. This will include
 everything on the map, but not where your map is scrolled to. It does not take the content of the text box at the bottom of the
 screen into account. It is intended to be used to store or share a curated list of banners.
 
-## Exporting banners as Drawtools JSON
+### Download Drawtools JSON
 
-You can use the 'DT' button on the map to export all visible banners as a JSON file compatible with Drawtools. This creates a downloadable file containing all banner routes as polylines with their coordinates and colors. The exported file will be automatically named with the current location and timestamp, for example: `banners_London_2025-09-03-14-30-15.json`.
+This option lets you export all visible banners as a JSON file compatible with Drawtools. It creates a downloadable file containing all banner routes as polylines with their coordinates and colors. The exported file will be automatically named with the current location and timestamp, for example: `banners_London_2025-09-03-14-30-15.json`.
 
 You can then use this to import the routes into IITC with Drawtools. It is useful for planning new routes while avoiding existing ones.
+
+### Show all banners URLs
+
+This will open a list with the URLs for all visible banners for easy copy/pasting as well as quickly opening all of them in new tabs for
+further processing, such as adding them to your TODO list in Bannergress.
+
+There are also buttons to _Copy All_ of them, as well as to _Open All_. Please not that opening all of them in new tabs via this 
+functionality is likely going to cause your browser's pop-up blocking to engage, and you will have to explicitly allow it to open these tabs
+the first time you use this function.
 
 ## Hiding the navigation panel
 
